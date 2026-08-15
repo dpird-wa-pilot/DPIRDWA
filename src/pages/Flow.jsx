@@ -15,13 +15,13 @@ export default function Flow() {
                 Navigate the digital landscape with expert guidance. Find the right tools, resources, and government grants tailored for Western Australian small businesses to thrive in a modern economy.
               </p>
               <div className="flex flex-col sm:flex-row gap-md mt-sm">
-                <button className="bg-primary-container text-on-primary font-label-md text-label-md py-3 px-6 rounded-lg hover:bg-primary transition-colors shadow-sm flex items-center justify-center gap-sm">
+                <Link to="/advisor" className="bg-primary-container text-on-primary font-label-md text-label-md py-3 px-6 rounded-lg hover:bg-primary transition-colors shadow-sm flex items-center justify-center gap-sm">
                   Get Started
                   <span className="material-symbols-outlined text-[20px]" data-icon="arrow_forward">arrow_forward</span>
-                </button>
-                <button className="bg-transparent border-2 border-primary-container text-primary-container font-label-md text-label-md py-3 px-6 rounded-lg hover:bg-surface-variant transition-colors flex items-center justify-center gap-sm">
+                </Link>
+                <Link to="/resources" className="bg-transparent border-2 border-primary-container text-primary-container font-label-md text-label-md py-3 px-6 rounded-lg hover:bg-surface-variant transition-colors flex items-center justify-center gap-sm">
                   Learn More
-                </button>
+                </Link>
               </div>
             </div>
             <div className="flex-1 w-full lg:w-auto mt-xl lg:mt-0 relative">
@@ -90,9 +90,9 @@ export default function Flow() {
                   Step-by-step guides tailored to your specific sector. Discover the foundational digital solutions you need at every stage of your business growth, aligned with industry standards.
                 </p>
               </div>
-              <button className="bg-secondary text-on-secondary font-label-md text-label-md py-3 px-6 rounded-lg hover:bg-secondary-container hover:text-on-secondary-container transition-colors shadow-sm flex items-center justify-center gap-sm shrink-0">
+              <Link to="/resources" className="bg-secondary text-on-secondary font-label-md text-label-md py-3 px-6 rounded-lg hover:bg-secondary-container hover:text-on-secondary-container transition-colors shadow-sm flex items-center justify-center gap-sm shrink-0">
                 View All Industry Plans
-              </button>
+              </Link>
             </div>
             
             {/* Bento Grid Layout for Featured Items */}

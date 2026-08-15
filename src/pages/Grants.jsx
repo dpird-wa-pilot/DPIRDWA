@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 
 const grantsData = [
   {
@@ -8,7 +8,14 @@ const grantsData = [
     status: 'Closed',
     startDate: '12 March 2026',
     endDate: '29 April 2026',
-    closes: '29 April 2026',
+    closes: '2026-04-29',
+    eligibility: [
+      'Must be a community-based organization.',
+      'Project must be located in Western Australia.',
+      'Must demonstrate stewardship of natural resources.',
+      'Minimum matching funding of 25% required.'
+    ],
+    guidelinesUrl: 'https://www.dpird.wa.gov.au/community-stewardship-guidelines',
     description: `Detailed information regarding the Community Stewardship Grants. This funding opportunity opens on 12 March 2026 and closes on 29 April 2026. Eligibility criteria apply. Please refer to the official DPIRD guidelines for full application requirements, matching funding ratios, and submission procedures.`
   },
   {
@@ -18,7 +25,13 @@ const grantsData = [
     status: 'Closed',
     startDate: '12 March 2026',
     endDate: '29 April 2026',
-    closes: '29 April 2026',
+    closes: '2026-04-29',
+    eligibility: [
+      'Local government authorities or recognized biosecurity groups.',
+      'Project must align with the WA Feral Cat Strategy.',
+      'Partnership with environmental groups encouraged.'
+    ],
+    guidelinesUrl: 'https://www.dpird.wa.gov.au/feral-cat-management-guidelines',
     description: `Detailed information regarding the Feral Cat Management Grants. This funding opportunity opens on 12 March 2026 and closes on 29 April 2026. Eligibility criteria apply. Please refer to the official DPIRD guidelines for full application requirements, matching funding ratios, and submission procedures.`
   },
   {
@@ -28,7 +41,13 @@ const grantsData = [
     status: 'Closed',
     startDate: '7 March 2026',
     endDate: '3 May 2026',
-    closes: '3 May 2026',
+    closes: '2026-05-03',
+    eligibility: [
+      'Primary producers in the Gnangara groundwater areas.',
+      'Must have a valid water license.',
+      'Willingness to implement water efficiency measures.'
+    ],
+    guidelinesUrl: 'https://www.dpird.wa.gov.au/watersmart-farms-guidelines',
     description: `Detailed information regarding the WaterSmart Farms voucher program. This funding opportunity opens on 7 March 2026 and closes on 3 May 2026. Eligibility criteria apply. Please refer to the official DPIRD guidelines for full application requirements, matching funding ratios, and submission procedures.`
   },
   {
@@ -38,7 +57,13 @@ const grantsData = [
     status: 'Closed',
     startDate: '27 February 2026',
     endDate: '24 April 2026',
-    closes: '24 April 2026',
+    closes: '2026-04-24',
+    eligibility: [
+      'Regional businesses in the food and beverage sector.',
+      'Must be registered for GST.',
+      'Project must increase processing or logistics capacity.'
+    ],
+    guidelinesUrl: 'https://www.dpird.wa.gov.au/supply-chain-capacity-guidelines',
     description: `Detailed information regarding the Supply Chain Capacity Program. This funding opportunity opens on 27 February 2026 and closes on 24 April 2026. Eligibility criteria apply. Please refer to the official DPIRD guidelines for full application requirements, matching funding ratios, and submission procedures.`
   },
   {
@@ -48,8 +73,15 @@ const grantsData = [
     status: 'Open',
     startDate: '16 February 2026',
     endDate: '30 June 2026',
-    closes: '30 June 2026',
-    description: `Detailed information regarding the Noongar Regional Corporations Economic Foundations Grants. This funding opportunity opens on 16 February 2026 and closes on 30 June 2026. Eligibility criteria apply. Please refer to the official DPIRD guidelines for full application requirements, matching funding ratios, and submission procedures.`
+    closes: '2026-06-30',
+    eligibility: [
+      'Limited to the 6 Noongar Regional Corporations identified by the South West Native Title Settlement.',
+      'Project must focus on economic and business development planning.',
+      'Corporate governance training must be a core component.'
+    ],
+    guidelinesUrl: 'https://www.dpird.wa.gov.au/siteassets/documents/aed/nrcefg-round2-guidelines.pdf',
+    applyUrl: 'https://dpird.smartygrants.com.au/NRCEFG2',
+    description: `The Noongar Regional Corporations Economic Foundations Grants will support the 6 Noongar Regional Corporations to undertake economic and business development planning and corporate governance training, empowering them to take advantage of economic opportunities in their regions.`
   },
   {
     id: 6,
@@ -58,198 +90,14 @@ const grantsData = [
     status: 'Closed',
     startDate: '3 December 2025',
     endDate: '2 February 2026',
-    closes: '2 February 2026',
+    closes: '2026-02-02',
+    eligibility: [
+      'Aboriginal-owned businesses (50% or more ownership).',
+      'Operating in the primary industry or related supply chain.',
+      'Must have been trading for at least 12 months.'
+    ],
+    guidelinesUrl: 'https://www.dpird.wa.gov.au/bbab-supply-chain-voucher-guidelines',
     description: `Detailed information regarding the Building Better Aboriginal Business Supply Chain Voucher. This funding opportunity opens on 3 December 2025 and closes on 2 February 2026. Eligibility criteria apply. Please refer to the official DPIRD guidelines for full application requirements, matching funding ratios, and submission procedures.`
-  },
-  {
-    id: 7,
-    title: `John Cripps Horticulture Scholarships`,
-    category: 'Agriculture',
-    status: 'Closed',
-    startDate: '22 October 2025',
-    endDate: '13 February 2026',
-    closes: '13 February 2026',
-    description: `Detailed information regarding the John Cripps Horticulture Scholarships. This funding opportunity opens on 22 October 2025 and closes on 13 February 2026. Eligibility criteria apply. Please refer to the official DPIRD guidelines for full application requirements, matching funding ratios, and submission procedures.`
-  },
-  {
-    id: 8,
-    title: `Regional Economic Development (RED) Grants`,
-    category: 'Regional',
-    status: 'Closed',
-    startDate: '17 October 2025',
-    endDate: '9 January 2026',
-    closes: '9 January 2026',
-    description: `Detailed information regarding the Regional Economic Development (RED) Grants. This funding opportunity opens on 17 October 2025 and closes on 9 January 2026. Eligibility criteria apply. Please refer to the official DPIRD guidelines for full application requirements, matching funding ratios, and submission procedures.`
-  },
-  {
-    id: 9,
-    title: `Regional Roads Australia Mobile Program Pilot`,
-    category: 'Regional',
-    status: 'Closed',
-    startDate: '2 October 2025',
-    endDate: '28 November 2025',
-    closes: '28 November 2025',
-    description: `Detailed information regarding the Regional Roads Australia Mobile Program Pilot. This funding opportunity opens on 2 October 2025 and closes on 28 November 2025. Eligibility criteria apply. Please refer to the official DPIRD guidelines for full application requirements, matching funding ratios, and submission procedures.`
-  },
-  {
-    id: 10,
-    title: `Animal Welfare Grant Program`,
-    category: 'Sustainability',
-    status: 'Closed',
-    startDate: '2 September 2025',
-    endDate: '29 September 2025',
-    closes: '29 September 2025',
-    description: `Detailed information regarding the Animal Welfare Grant Program. This funding opportunity opens on 2 September 2025 and closes on 29 September 2025. Eligibility criteria apply. Please refer to the official DPIRD guidelines for full application requirements, matching funding ratios, and submission procedures.`
-  },
-  {
-    id: 11,
-    title: `Carbon for Farmers Voucher Program`,
-    category: 'Sustainability',
-    status: 'Closed',
-    startDate: '30 July 2025',
-    endDate: '19 September 2025',
-    closes: '19 September 2025',
-    description: `Detailed information regarding the Carbon for Farmers Voucher Program. This funding opportunity opens on 30 July 2025 and closes on 19 September 2025. Eligibility criteria apply. Please refer to the official DPIRD guidelines for full application requirements, matching funding ratios, and submission procedures.`
-  },
-  {
-    id: 12,
-    title: `Farmers’ Market Grant Scheme`,
-    category: 'Food and beverage',
-    status: 'Open',
-    startDate: '20 July 2025',
-    endDate: '31 December 2027',
-    closes: '31 December 2027',
-    description: `Detailed information regarding the Farmers’ Market Grant Scheme. This funding opportunity opens on 20 July 2025 and closes on 31 December 2027. Eligibility criteria apply. Please refer to the official DPIRD guidelines for full application requirements, matching funding ratios, and submission procedures.`
-  },
-  {
-    id: 13,
-    title: `Agrifood and Beverage Voucher Program`,
-    category: 'Food and beverage',
-    status: 'Closed',
-    startDate: '8 July 2025',
-    endDate: '26 August 2025',
-    closes: '26 August 2025',
-    description: `Detailed information regarding the Agrifood and Beverage Voucher Program. This funding opportunity opens on 8 July 2025 and closes on 26 August 2025. Eligibility criteria apply. Please refer to the official DPIRD guidelines for full application requirements, matching funding ratios, and submission procedures.`
-  },
-  {
-    id: 14,
-    title: `Southern Rangelands Revitalisation Program`,
-    category: 'Emergencies',
-    status: 'Closed',
-    startDate: '14 November 2024',
-    endDate: '14 November 2024',
-    closes: '14 November 2024',
-    description: `Detailed information regarding the Southern Rangelands Revitalisation Program. This funding opportunity opens on 14 November 2024 and closes on 14 November 2024. Eligibility criteria apply. Please refer to the official DPIRD guidelines for full application requirements, matching funding ratios, and submission procedures.`
-  },
-  {
-    id: 15,
-    title: `Kimberley flood recovery assistance`,
-    category: 'Emergencies',
-    status: 'Closed',
-    startDate: '19 September 2024',
-    endDate: '30 April 2025',
-    closes: '30 April 2025',
-    description: `Detailed information regarding the Kimberley flood recovery assistance. This funding opportunity opens on 19 September 2024 and closes on 30 April 2025. Eligibility criteria apply. Please refer to the official DPIRD guidelines for full application requirements, matching funding ratios, and submission procedures.`
-  },
-  {
-    id: 16,
-    title: `Surf Beaches Mobile Coverage Grants Program`,
-    category: 'Emergencies',
-    status: 'Closed',
-    startDate: '11 September 2024',
-    endDate: '8 November 2024',
-    closes: '8 November 2024',
-    description: `Detailed information regarding the Surf Beaches Mobile Coverage Grants Program. This funding opportunity opens on 11 September 2024 and closes on 8 November 2024. Eligibility criteria apply. Please refer to the official DPIRD guidelines for full application requirements, matching funding ratios, and submission procedures.`
-  },
-  {
-    id: 17,
-    title: `Disaster Recovery Funding Arrangements`,
-    category: 'Agriculture',
-    status: 'Open',
-    startDate: '23 August 2024',
-    endDate: '31 December 2028',
-    closes: '31 December 2028',
-    description: `Detailed information regarding the Disaster Recovery Funding Arrangements. This funding opportunity opens on 23 August 2024 and closes on 31 December 2028. Eligibility criteria apply. Please refer to the official DPIRD guidelines for full application requirements, matching funding ratios, and submission procedures.`
-  },
-  {
-    id: 18,
-    title: `Horticulture Netting Infrastructure Program`,
-    category: 'Agriculture',
-    status: 'Closed',
-    startDate: '24 June 2024',
-    endDate: '30 April 2026',
-    closes: '30 April 2026',
-    description: `Detailed information regarding the Horticulture Netting Infrastructure Program. This funding opportunity opens on 24 June 2024 and closes on 30 April 2026. Eligibility criteria apply. Please refer to the official DPIRD guidelines for full application requirements, matching funding ratios, and submission procedures.`
-  },
-  {
-    id: 19,
-    title: `Gnangara Horticulture Water Use Efficiency voucher`,
-    category: 'Agriculture',
-    status: 'Open',
-    startDate: '24 June 2024',
-    endDate: '30 June 2026',
-    closes: '30 June 2026',
-    description: `Detailed information regarding the Gnangara Horticulture Water Use Efficiency voucher. This funding opportunity opens on 24 June 2024 and closes on 30 June 2026. Eligibility criteria apply. Please refer to the official DPIRD guidelines for full application requirements, matching funding ratios, and submission procedures.`
-  },
-  {
-    id: 20,
-    title: `Gnangara Horticulture Water Use Efficiency Grant`,
-    category: 'Agriculture',
-    status: 'Open',
-    startDate: '24 June 2024',
-    endDate: '30 June 2026',
-    closes: '30 June 2026',
-    description: `Detailed information regarding the Gnangara Horticulture Water Use Efficiency Grant. This funding opportunity opens on 24 June 2024 and closes on 30 June 2026. Eligibility criteria apply. Please refer to the official DPIRD guidelines for full application requirements, matching funding ratios, and submission procedures.`
-  },
-  {
-    id: 21,
-    title: `Southern Rangelands Aboriginal Corporate Governance Development Targeted Grant Round`,
-    category: 'Regional',
-    status: 'Closed',
-    startDate: '24 June 2024',
-    endDate: '23 May 2020',
-    closes: '23 May 2020',
-    description: `Detailed information regarding the Southern Rangelands Aboriginal Corporate Governance Development Targeted Grant Round. This funding opportunity opens on 24 June 2024 and closes on 23 May 2020. Eligibility criteria apply. Please refer to the official DPIRD guidelines for full application requirements, matching funding ratios, and submission procedures.`
-  },
-  {
-    id: 22,
-    title: `Value Add Investment Grants Program - Feasibility Stream`,
-    category: 'Food and beverage',
-    status: 'Closed',
-    startDate: '21 June 2024',
-    endDate: '30 June 2025',
-    closes: '30 June 2025',
-    description: `Detailed information regarding the Value Add Investment Grants Program - Feasibility Stream. This funding opportunity opens on 21 June 2024 and closes on 30 June 2025. Eligibility criteria apply. Please refer to the official DPIRD guidelines for full application requirements, matching funding ratios, and submission procedures.`
-  },
-  {
-    id: 23,
-    title: `Drought Response: Interest-Free Loans`,
-    category: 'Agriculture',
-    status: 'Closed',
-    startDate: '1 June 2024',
-    endDate: '30 November 2024',
-    closes: '30 November 2024',
-    description: `Detailed information regarding the Drought Response: Interest-Free Loans. This funding opportunity opens on 1 June 2024 and closes on 30 November 2024. Eligibility criteria apply. Please refer to the official DPIRD guidelines for full application requirements, matching funding ratios, and submission procedures.`
-  },
-  {
-    id: 24,
-    title: `Farm Debt Mediation Scheme WA`,
-    category: 'Agriculture',
-    status: 'Open',
-    startDate: '8 May 2024',
-    endDate: '30 June 2026',
-    closes: '30 June 2026',
-    description: `Detailed information regarding the Farm Debt Mediation Scheme WA. This funding opportunity opens on 8 May 2024 and closes on 30 June 2026. Eligibility criteria apply. Please refer to the official DPIRD guidelines for full application requirements, matching funding ratios, and submission procedures.`
-  },
-  {
-    id: 25,
-    title: `Southern Forests Infrastructure Support Scheme`,
-    category: 'Agriculture',
-    status: 'Closed',
-    startDate: '19 April 2024',
-    endDate: '11 July 2024',
-    closes: '11 July 2024',
-    description: `Detailed information regarding the Southern Forests Infrastructure Support Scheme. This funding opportunity opens on 19 April 2024 and closes on 11 July 2024. Eligibility criteria apply. Please refer to the official DPIRD guidelines for full application requirements, matching funding ratios, and submission procedures.`
   },
   {
     id: 26,
@@ -308,8 +156,6 @@ export default function Grants() {
     'Sustainability': false
   });
 
-  const [expandedGrantId, setExpandedGrantId] = useState(null);
-
   const handleStatusChange = (status) => {
     setStatusFilter(prev => ({ ...prev, [status]: !prev[status] }));
   };
@@ -334,10 +180,6 @@ export default function Grants() {
       return searchMatch && statusMatch && categoryMatch;
     });
   }, [searchQuery, statusFilter, categoryFilter]);
-
-  const toggleExpand = (id) => {
-    setExpandedGrantId(prev => prev === id ? null : id);
-  };
 
   return (
     <>
@@ -465,80 +307,103 @@ export default function Grants() {
                 </button>
               </div>
             ) : (
-              filteredGrants.map(grant => {
-                const isExpanded = expandedGrantId === grant.id;
-                
-                return (
-                  <article 
-                    key={grant.id} 
-                    className={`bg-surface-container-lowest border border-outline-variant rounded-lg hover:shadow-md transition-shadow duration-200 overflow-hidden cursor-pointer ${isExpanded ? 'ring-2 ring-primary border-primary' : ''}`}
-                    onClick={() => toggleExpand(grant.id)}
-                  >
-                    <div className="p-lg flex flex-col md:flex-row justify-between gap-md">
-                      <div>
-                        <div className="flex flex-wrap items-center gap-sm mb-xs">
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-md">
+                {(() => {
+                  const agricultureImages = [
+                    "https://plus.unsplash.com/premium_photo-1661962692059-55d5a4319814?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://images.unsplash.com/photo-1560493676-04071c5f467b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://images.unsplash.com/photo-1710563159928-83611beece71?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://plus.unsplash.com/premium_photo-1674624682288-085eff4f98da?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://images.unsplash.com/photo-1620200423727-8127f75d7f53?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://images.unsplash.com/photo-1535379453347-1ffd615e2e08?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://images.unsplash.com/photo-1594771804886-a933bb2d609b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://plus.unsplash.com/premium_photo-1661907005604-cec7ffb6a042?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://images.unsplash.com/photo-1492496913980-501348b61469?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://images.unsplash.com/photo-1627920769541-daa658ed6b59?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://images.unsplash.com/photo-1597916829826-02e5bb4a54e0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://plus.unsplash.com/premium_photo-1678344170545-c3edef92a16e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://images.unsplash.com/photo-1523741543316-beb7fc7023d8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://images.unsplash.com/photo-1656407410275-e63e689bcd90?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://images.unsplash.com/photo-1515150144380-bca9f1650ed9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://plus.unsplash.com/premium_photo-1674019234994-eceabbdd091d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://images.unsplash.com/photo-1499529112087-3cb3b73cec95?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://images.unsplash.com/photo-1586771107445-d3ca888129ff?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://images.unsplash.com/photo-1508175688576-0c076b47b5b5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://plus.unsplash.com/premium_photo-1663945779302-b46b12b6d811?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://images.unsplash.com/photo-1563514227147-6d2ff665a6a0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://images.unsplash.com/photo-1524486361537-8ad15938e1a3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://images.unsplash.com/photo-1483871788521-4f224a86e166?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://plus.unsplash.com/premium_photo-1661902195336-996462e0d1d6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://images.unsplash.com/photo-1564417947365-8dbc9d0e718e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://images.unsplash.com/photo-1464226184884-fa280b87c399?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://images.unsplash.com/photo-1627920768905-575535d6dd2e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://plus.unsplash.com/premium_photo-1661963506575-cadb507b2aaf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://images.unsplash.com/photo-1527847263472-aa5338d178b8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://images.unsplash.com/photo-1518994603110-1912b3272afd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://images.unsplash.com/photo-1461354464878-ad92f492a5a0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://plus.unsplash.com/premium_photo-1663945778994-11b3201882a0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://images.unsplash.com/photo-1591647620471-cffbb4ec2242?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://images.unsplash.com/photo-1500595046743-cd271d694d30?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://images.unsplash.com/photo-1529313780224-1a12b68bed16?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://plus.unsplash.com/premium_photo-1661904674420-d01a68b8965b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://images.unsplash.com/photo-1500382017468-9049fed747ef?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://images.unsplash.com/photo-1557234195-bd9f290f0e4d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                    "https://images.unsplash.com/photo-1684154739620-ef7b1e078d4d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080"
+                  ];
+                  return filteredGrants.map((grant) => (
+                    <article 
+                      key={grant.id} 
+                      className="bg-surface-container-lowest border border-outline-variant rounded-lg overflow-hidden hover:shadow-md transition-shadow duration-200 flex flex-col"
+                    >
+                      <img 
+                        alt={grant.title} 
+                        className="w-full h-48 object-cover" 
+                        src={agricultureImages[grant.id % agricultureImages.length]} 
+                      />
+                      
+                      <div className="p-md flex flex-col flex-grow">
+                        <div className="flex items-center gap-sm mb-sm flex-wrap">
                           <span className="font-label-sm text-label-sm bg-tertiary-fixed text-on-tertiary-fixed-variant px-2 py-1 rounded">{grant.category}</span>
-                          <span className={`font-label-sm text-label-sm px-2 py-1 rounded flex items-center gap-1 ${grant.status === 'Open' ? 'bg-[#e8f5e9] text-[#1b5e20]' : 'bg-surface-variant text-on-surface-variant'}`}>
-                            {grant.status === 'Open' && <span className="w-2 h-2 rounded-full bg-[#4caf50]"></span>}
-                            {grant.status}
-                          </span>
                         </div>
+                        
                         <h2 className="font-headline-md text-headline-md text-primary mb-sm">{grant.title}</h2>
-                      </div>
-                      <div className="flex-shrink-0 text-right md:w-48 bg-surface-container p-sm rounded border border-outline-variant self-start flex items-center justify-between md:flex-col md:items-end">
-                        <div>
-                          <p className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide md:text-right text-left">Closes</p>
-                          <p className="font-body-md text-body-md text-on-surface font-semibold">{grant.closes}</p>
-                        </div>
-                        <span className={`material-symbols-outlined transition-transform duration-300 md:mt-2 text-outline ${isExpanded ? 'rotate-180' : ''}`}>
-                          expand_more
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Expandable Body */}
-                    <div className={`transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'} overflow-hidden`}>
-                      <div className="p-lg pt-0 border-t border-outline-variant bg-surface-container-lowest">
-                        <div className="my-md flex flex-wrap gap-lg">
-                           <div className="bg-surface-container p-sm rounded">
-                             <span className="block font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mb-1">Start Date</span>
-                             <span className="font-body-md text-body-md text-on-surface font-semibold">{grant.startDate}</span>
-                           </div>
-                           <div className="bg-surface-container p-sm rounded">
-                             <span className="block font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mb-1">End Date</span>
-                             <span className="font-body-md text-body-md text-on-surface font-semibold">{grant.endDate}</span>
-                           </div>
-                           <div className="bg-surface-container p-sm rounded">
-                             <span className="block font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mb-1">Status</span>
-                             <span className={`font-body-md text-body-md font-semibold ${grant.status === 'Open' ? 'text-[#1b5e20]' : 'text-on-surface'}`}>{grant.status}</span>
-                           </div>
-                        </div>
-
-                        <p className="font-body-lg text-body-lg text-on-surface-variant max-w-4xl mb-lg leading-relaxed">
+                        
+                        {/* Truncated Description */}
+                        <p className="font-body-md text-body-md text-on-surface-variant mb-md line-clamp-3">
                           {grant.description}
                         </p>
-
-                        <div className="flex justify-between items-center mt-auto">
-                          <button 
-                            className="font-label-md text-label-md text-primary hover:bg-primary-container py-2 px-4 rounded transition-colors flex items-center gap-xs cursor-pointer" 
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            View Full Guidelines <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                          </button>
-                          {grant.status === 'Open' && (
-                            <button 
-                              className="bg-[#b58500] text-on-primary font-label-md text-label-md py-2 px-4 rounded hover:bg-secondary transition-colors font-bold shadow-sm cursor-pointer"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              Check Eligibility
-                            </button>
-                          )}
+                        
+                        <div className="flex flex-col gap-xs mb-md mt-auto">
+                          <div className="flex items-center gap-sm text-on-surface-variant font-label-sm text-label-sm">
+                            <span className="material-symbols-outlined text-[16px]">calendar_today</span>
+                            <span>Start Date: {grant.startDate}</span>
+                          </div>
+                          <div className="flex items-center gap-sm text-on-surface-variant font-label-sm text-label-sm">
+                            <span className="material-symbols-outlined text-[16px]">calendar_today</span>
+                            <span>End Date: {grant.endDate}</span>
+                          </div>
+                          <div className={`flex items-center gap-sm font-label-sm text-label-sm mt-xs font-semibold ${grant.status === 'Open' ? 'text-[#1b5e20]' : 'text-error'}`}>
+                            <span className="material-symbols-outlined text-[16px]">info</span>
+                            <span>Status: {grant.status}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </article>
-                );
-              })
+                      
+                      <div className="p-md pt-0 border-t border-outline-variant flex flex-col md:flex-row justify-between items-center gap-sm bg-surface-container-lowest mt-auto">
+                        <button className="font-label-md text-label-md text-primary hover:bg-primary-container py-2 px-3 rounded transition-colors flex items-center gap-xs cursor-pointer">
+                          Guidelines <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                        </button>
+                        {grant.status === 'Open' && (
+                          <button className="bg-[#b58500] text-on-primary font-label-md text-label-md py-2 px-4 rounded hover:bg-secondary transition-colors font-bold shadow-sm cursor-pointer whitespace-nowrap">
+                            Check Eligibility
+                          </button>
+                        )}
+                      </div>
+                    </article>
+                  ));
+                })()}
+              </div>
             )}
           </div>
         </div>

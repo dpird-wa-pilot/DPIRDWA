@@ -23,8 +23,16 @@ export default function Chatbot() {
             </button>
           </div>
           
+          {/* Privacy Warning Banner */}
+          <div className="bg-amber-500/10 border-b border-amber-500/20 p-2.5 px-3 flex items-start gap-2 text-amber-800 text-[11px] leading-snug">
+            <span className="material-symbols-outlined text-[16px] text-amber-600 shrink-0 mt-0.5">warning</span>
+            <div>
+              <strong>Aviso de Privacidad (Piloto):</strong> En la versión gratuita de Gemini API, Google puede utilizar las interacciones para entrenar sus modelos. <strong>No ingreses información personal o datos financieros confidenciales.</strong>
+            </div>
+          </div>
+          
           {/* Messages Area */}
-          <div className="flex-1 p-md flex flex-col gap-md h-[400px] overflow-y-auto bg-surface-container-lowest">
+          <div className="flex-1 p-md flex flex-col gap-md h-[360px] overflow-y-auto bg-surface-container-lowest">
             <div className="flex flex-col gap-xs max-w-[85%] self-start">
               <div className="bg-surface-container-high text-on-surface p-sm rounded-lg rounded-tl-none font-body-md text-[14px]">
                 Hi! I'm your DPIRD digital assistant. How can I help you find resources or grants today?
