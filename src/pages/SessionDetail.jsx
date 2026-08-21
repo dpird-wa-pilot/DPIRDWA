@@ -9,6 +9,7 @@ export default function SessionDetail() {
   const [session, setSession] = useState(null);
   const [results, setResults] = useState([]);
   const [responses, setResponses] = useState([]);
+  const [tagsMap, setTagsMap] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,6 +29,14 @@ export default function SessionDetail() {
         .single();
         
       setSession(sessionData);
+
+      // Load tags map
+      const { data: tagsData } = await supabase.from('tags').select('slug, name');
+      if (tagsData) {
+        const map = {};
+        tagsData.forEach(t => { map[t.slug] = t.name; });
+        setTagsMap(map);
+      }
 
       // Load results
       const { data: matchResults } = await supabase
@@ -173,7 +182,7 @@ export default function SessionDetail() {
                           <div className="flex flex-wrap gap-1 mt-2">
                             {r.tags_activated.map(t => (
                               <span key={t} className="px-1.5 py-0.5 bg-green-100 text-green-800 text-[10px] font-mono rounded">
-                                {t}
+                                {tagsMap[t] || t}
                               </span>
                             ))}
                           </div>
@@ -230,7 +239,7 @@ export default function SessionDetail() {
                               <div className="flex flex-wrap gap-1">
                                 {(r.matched_tags || []).slice(0, 4).map(t => (
                                   <span key={t} className="px-1.5 py-0.5 bg-surface text-on-surface-variant text-[10px] font-mono rounded border border-outline-variant">
-                                    {t}
+                                    {tagsMap[t] || t}
                                   </span>
                                 ))}
                                 {(r.matched_tags || []).length > 4 && (

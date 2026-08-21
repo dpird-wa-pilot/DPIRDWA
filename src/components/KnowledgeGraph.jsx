@@ -38,7 +38,7 @@ export function KnowledgeGraph({ sessionId }) {
 
   const loadGraphData = async (sId) => {
     try {
-      const [{ data: responses }, { data: results }] = await Promise.all([
+      const [{ data: responses }, { data: results }, { data: tags }] = await Promise.all([
         supabase
           .from('user_responses')
           .select('id, answer_value, tags_activated')
@@ -46,8 +46,14 @@ export function KnowledgeGraph({ sessionId }) {
         supabase
           .from('match_results')
           .select('result_id, result_name, result_type, match_score, matched_tags, reasoning_path')
-          .eq('session_id', sId)
+          .eq('session_id', sId),
+        supabase.from('tags').select('slug, name')
       ]);
+
+      const tagsMap = {};
+      if (tags) {
+        tags.forEach(t => { tagsMap[t.slug] = t.name; });
+      }
 
       const allTags = [...new Set((responses ?? []).flatMap(r => r.tags_activated ?? []))];
 
@@ -62,7 +68,7 @@ export function KnowledgeGraph({ sessionId }) {
         ...allTags.map(t => ({
           id:    `tag-${t}`,
           type:  'tag',
-          label: t,
+          label: tagsMap[t] || t,
           color: NODE_COLORS.tag,
           val: 1.5
         })),

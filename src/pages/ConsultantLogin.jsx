@@ -1,5 +1,5 @@
 // [CC-005] Consultant login form
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useConsultant } from '../lib/consultantContext';
@@ -8,10 +8,19 @@ export default function ConsultantLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
+  const [message, setMessage] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const navigate = useNavigate();
-  const { setCurrentConsultant, setConsultantMode } = useConsultant();
+  const { currentConsultant, setCurrentConsultant, setConsultantMode } = useConsultant();
+
+  // [BUG-006] Redirect if already authenticated
+  useEffect(() => {
+    if (currentConsultant) {
+      navigate('/consultant/dashboard', { replace: true });
+    }
+  }, [currentConsultant, navigate]);
+
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -48,6 +57,29 @@ export default function ConsultantLogin() {
     navigate('/consultant/dashboard');
   };
 
+  // [BUG-007] Forgot Password Flow
+  const handleResetPassword = async () => {
+    if (!email) {
+      setError('Please enter your email address first.');
+      return;
+    }
+    setError(null);
+    setMessage(null);
+    setIsSubmitting(true);
+    
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/login`,
+    });
+    
+    if (error) {
+      setError(error.message);
+    } else {
+      setMessage('Password reset instructions have been sent to your email.');
+    }
+    setIsSubmitting(false);
+  };
+
+
   return (
     <main className="min-h-screen bg-surface flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md bg-surface-container rounded-2xl shadow-sm border border-outline-variant p-8">
@@ -62,6 +94,14 @@ export default function ConsultantLogin() {
             {error}
           </div>
         )}
+        
+        {message && (
+          <div className="mb-6 p-4 bg-green-100 text-green-800 rounded-lg text-sm border border-green-200 flex gap-2">
+            <span className="material-symbols-outlined text-[18px]">check_circle</span>
+            {message}
+          </div>
+        )}
+
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
@@ -77,8 +117,17 @@ export default function ConsultantLogin() {
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-on-surface mb-2">Password</label>
+            <div className="flex justify-between items-center mb-2">
+              <label className="block text-sm font-medium text-on-surface">Password</label>
+              <button
+                type="button"
+                onClick={handleResetPassword}
+                disabled={isSubmitting}
+                className="text-sm font-medium text-primary hover:underline disabled:opacity-50"
+              >
+                Forgot password?
+              </button>
+            </div>
             <input
               type="password"
               required

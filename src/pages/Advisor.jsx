@@ -371,6 +371,11 @@ export default function Advisor() {
         await supabase.from('match_results').insert(insertResults);
       }
 
+      // [BUG-003] Mark session as completed
+      await supabase.from('diagnostic_sessions')
+        .update({ status: 'completed', completed_at: new Date().toISOString() })
+        .eq('id', wizardState.sessionId);
+
       setWizardState(prev => ({
         ...prev,
         currentStep: 5,

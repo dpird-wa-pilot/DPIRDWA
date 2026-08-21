@@ -25,6 +25,7 @@ export default function ConsultantDashboard() {
   const [temporalTrends, setTemporalTrends] = useState([]);
   const [dimensionCoverage, setDimensionCoverage] = useState([]);
   const [recentSessions, setRecentSessions] = useState([]);
+  const [tagsMap, setTagsMap] = useState({});
 
   useEffect(() => {
     loadDashboardData();
@@ -33,6 +34,7 @@ export default function ConsultantDashboard() {
   const loadDashboardData = async () => {
     setLoading(true);
     try {
+      await fetchTagsMap();
       await Promise.all([
         fetchCoverageBySector(),
         fetchTopGrants(),
@@ -53,6 +55,15 @@ export default function ConsultantDashboard() {
   // ---------------------------------------------------------
   // [CC-005] Data Fetching Logic (View 1 - 8 + Sessions)
   // ---------------------------------------------------------
+
+  const fetchTagsMap = async () => {
+    const { data } = await supabase.from('tags').select('slug, name');
+    if (data) {
+      const map = {};
+      data.forEach(t => { map[t.slug] = t.name; });
+      setTagsMap(map);
+    }
+  };
 
   const fetchCoverageBySector = async () => {
     const { data: sessions } = await supabase
@@ -422,7 +433,7 @@ export default function ConsultantDashboard() {
                     <BarChart data={topGrants} layout="vertical" margin={{ left: 50 }}>
                       <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                       <XAxis type="number" />
-                      <YAxis dataKey="grant_name" type="category" width={150} tick={{ fontSize: 10 }} />
+                      <YAxis dataKey="grant_name" type="category" width={200} tickFormatter={(val) => val.length > 25 ? val.substring(0, 25) + '...' : val} tick={{ fontSize: 10 }} />
                       <RechartsTooltip />
                       <Bar dataKey="activation_count" fill="var(--primary)" radius={[0, 4, 4, 0]} />
                     </BarChart>
@@ -449,7 +460,7 @@ export default function ConsultantDashboard() {
                     <BarChart data={topResources} layout="vertical" margin={{ left: 50 }}>
                       <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                       <XAxis type="number" />
-                      <YAxis dataKey="resource_name" type="category" width={150} tick={{ fontSize: 10 }} />
+                      <YAxis dataKey="resource_name" type="category" width={200} tickFormatter={(val) => val.length > 25 ? val.substring(0, 25) + '...' : val} tick={{ fontSize: 10 }} />
                       <RechartsTooltip />
                       <Bar dataKey="match_count" fill="var(--tertiary)" radius={[0, 4, 4, 0]} />
                     </BarChart>
@@ -507,7 +518,7 @@ export default function ConsultantDashboard() {
                   <tbody>
                     {undercoveredTags.slice(0, 10).map((row, i) => (
                       <tr key={i} className="border-b border-outline-variant/50">
-                        <td className="p-3 font-medium text-on-surface">{row.tag}</td>
+                        <td className="p-3 font-medium text-on-surface">{tagsMap[row.tag] || row.tag}</td>
                         <td className="p-3 text-on-surface-variant">{row.frequency}</td>
                         <td className="p-3 text-on-surface-variant">{row.grants_covering}</td>
                         <td className="p-3 text-on-surface-variant">{(row.avg_match_score * 100).toFixed(1)}%</td>
@@ -526,7 +537,7 @@ export default function ConsultantDashboard() {
               <div className="bg-surface-container p-6 rounded-2xl border border-outline-variant">
                 <h2 className="text-lg font-bold text-on-surface mb-4">View 6: Potential New Grant Impact</h2>
                 <p className="text-sm text-on-surface-variant mb-4">
-                  Based on the top 3 undercovered tags: <span className="font-mono text-xs bg-surface px-2 py-1 rounded">{potentialGrants.tags_covered.join(', ')}</span>
+                  Based on the top 3 undercovered tags: <span className="font-mono text-xs bg-surface px-2 py-1 rounded">{(potentialGrants.tags_covered || []).map(t => tagsMap[t] || t).join(', ')}</span>
                 </p>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="p-4 border border-outline-variant rounded-xl">
@@ -580,7 +591,7 @@ export default function ConsultantDashboard() {
                       </div>
                       <div className="w-full h-3 bg-surface rounded-full overflow-hidden flex">
                         <div 
-                          className="h-full bg-primary"
+                          className={`h-full ${dim.coverage_percentage >= 80 ? 'bg-green-500' : dim.coverage_percentage >= 60 ? 'bg-amber-500' : 'bg-error'}`}
                           style={{ width: `${dim.coverage_percentage}%` }}
                         ></div>
                       </div>
