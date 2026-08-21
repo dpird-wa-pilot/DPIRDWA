@@ -21,7 +21,7 @@ export default function Header() {
           <Link className={getLinkClasses("/advisor")} to="/advisor">Advisory Tool</Link>
           <Link className={getLinkClasses("/resources")} to="/resources">Resources</Link>
           <Link className={getLinkClasses("/grants")} to="/grants">Grants</Link>
-          <Link className={getLinkClasses("/flow")} to="/flow">Flow</Link>
+          <Link className={getLinkClasses("/providers")} to="/providers">Providers</Link>
         </nav>
         <div className="flex items-center gap-md text-primary dark:text-inverse-primary">
           <button aria-label="Search" className="hover:opacity-80 scale-98 transition-all p-sm">

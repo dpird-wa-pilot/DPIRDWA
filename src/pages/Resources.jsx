@@ -1,18 +1,246 @@
-import React from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { supabase } from '../lib/supabaseClient';
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Format ISO date string (YYYY-MM-DD) → "2026" (Just year for resources) */
+const formatYear = (dateStr) => {
+  if (!dateStr) return '—';
+  return new Date(dateStr).getFullYear().toString();
+};
+
+const formatAuthors = (authors) => {
+  if (!authors || authors.length === 0) return 'DPIRD Western Australia';
+  if (authors.length <= 2) return authors.join(', ');
+  return `${authors[0]}, ${authors[1]} +${authors.length - 2} more`;
+};
+
+/** Labels and colors for resource types */
+const typeLabels = {
+  book_chapter: { label: 'Book / Chapter', color: 'bg-blue-100 text-blue-800 border-blue-200' },
+  journal_article: { label: 'Journal Article', color: 'bg-purple-100 text-purple-800 border-purple-200' },
+  research_report: { label: 'Research Report', color: 'bg-green-100 text-green-800 border-green-200' }
+};
+
+/** Labels for DML levels */
+const dmlLabels = {
+  foundational: 'Foundational',
+  emerging: 'Emerging',
+  established: 'Established',
+  advanced: 'Advanced'
+};
+
+const formatDmlBadge = (dmlLevels) => {
+  if (!dmlLevels || dmlLevels.length === 0) return null;
+  if (dmlLevels.length === 1) return dmlLabels[dmlLevels[0]];
+  // If multiple, show range (e.g. "Foundational - Emerging") 
+  // Assuming they are ordered by enum in the DB or we can just join them. 
+  // We'll just show the first and last
+  const levels = ['foundational', 'emerging', 'established', 'advanced'];
+  const present = levels.filter(l => dmlLevels.includes(l));
+  if (present.length <= 1) return dmlLabels[present[0]];
+  return `${dmlLabels[present[0]]} – ${dmlLabels[present[present.length-1]]}`;
+};
+
+/** Return human-readable category label from sector_tags using the sectors map */
+const getCategoryLabel = (sectorTags, sectorsMap) => {
+  if (!sectorTags || sectorTags.length === 0) return 'General';
+  const slug = sectorTags[0];
+  return sectorsMap[slug] || slug;
+};
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
+const FilterGroup = ({ label, sectionKey, activeCount, openSections, toggleSection, children }) => {
+  const isOpen = openSections[sectionKey];
+  return (
+    <div className="border-b border-outline-variant">
+      <button
+        onClick={() => toggleSection(sectionKey)}
+        className="w-full flex items-center justify-between py-md px-0 text-left hover:bg-surface-variant transition-colors"
+      >
+        <span className="font-label-md text-label-md text-on-surface font-semibold flex items-center gap-sm">
+          {label}
+          {activeCount > 0 && (
+            <span className="text-xs bg-primary text-on-primary rounded-full px-1.5 py-0.5 font-bold">
+              {activeCount}
+            </span>
+          )}
+        </span>
+        <span
+          className={`material-symbols-outlined text-on-surface-variant transition-transform duration-200
+            ${isOpen ? 'rotate-180' : 'rotate-0'}`}
+        >
+          expand_more
+        </span>
+      </button>
+      {isOpen && (
+        <div className="pb-md flex flex-col gap-sm">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default function Resources() {
+  // --- Data state ---
+  const [resources, setResources] = useState([]);
+  const [sectorsMap, setSectorsMap] = useState({}); // { slug: name }
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // --- Filter state ---
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  const [selectedTypes, setSelectedTypes] = useState({});
+  const [selectedIndustries, setSelectedIndustries] = useState({});
+  const [selectedDmlLevels, setSelectedDmlLevels] = useState({});
+
+  const [openSections, setOpenSections] = useState({
+    resource_type: true,
+    industry: true,
+    dml_level: false,
+  });
+
+  const toggleSection = (key) => {
+    setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  // ---------------------------------------------------------------------------
+  // Data fetching
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+
+      // Run both queries in parallel
+      const [resourcesResult, sectorsResult] = await Promise.all([
+        supabase
+          .from('resources')
+          .select('id, title, slug, resource_type, authors, summary, abstract, publication_date, publisher, journal_name, volume_issue, report_number, library_url, sector_tags, trigger_tags, dml_levels, is_featured, sort_order')
+          .eq('is_active', true)
+          .order('is_featured', { ascending: false })
+          .order('sort_order', { ascending: true })
+          .order('publication_date', { ascending: false }),
+        supabase
+          .from('sectors')
+          .select('slug, name')
+          .eq('is_active', true),
+      ]);
+
+      if (resourcesResult.error) {
+        setError(resourcesResult.error.message);
+        setLoading(false);
+        return;
+      }
+
+      // Build slug → name map from sectors table
+      const map = {};
+      if (!sectorsResult.error && sectorsResult.data) {
+        sectorsResult.data.forEach(s => { map[s.slug] = s.name; });
+      }
+
+      setResources(resourcesResult.data || []);
+      setSectorsMap(map);
+      setLoading(false);
+    };
+
+    fetchData();
+  }, []);
+
+  // ---------------------------------------------------------------------------
+  // Derived: available industries
+  // ---------------------------------------------------------------------------
+  const availableIndustries = useMemo(() => {
+    const slugs = new Set();
+    resources.forEach(r => (r.sector_tags || []).forEach(s => slugs.add(s)));
+    return Array.from(slugs).sort();
+  }, [resources]);
+
+  // ---------------------------------------------------------------------------
+  // Filter handlers
+  // ---------------------------------------------------------------------------
+  const handleTypeChange = (val) => setSelectedTypes(prev => ({ ...prev, [val]: !prev[val] }));
+  const handleIndustryChange = (slug) => setSelectedIndustries(prev => ({ ...prev, [slug]: !prev[slug] }));
+  const handleDmlChange = (val) => setSelectedDmlLevels(prev => ({ ...prev, [val]: !prev[val] }));
+
+  const handleClearFilters = () => {
+    setSearchQuery('');
+    setSelectedTypes({});
+    setSelectedIndustries({});
+    setSelectedDmlLevels({});
+    setOpenSections({
+      resource_type: true,
+      industry: true,
+      dml_level: false,
+    });
+  };
+
+  const activeFiltersCount = 
+    Object.values(selectedTypes).filter(Boolean).length +
+    Object.values(selectedIndustries).filter(Boolean).length +
+    Object.values(selectedDmlLevels).filter(Boolean).length;
+    
+  const hasAnyFilterActive = activeFiltersCount > 0 || searchQuery.trim() !== '';
+
+  // ---------------------------------------------------------------------------
+  // Apply filtering
+  // ---------------------------------------------------------------------------
+  const filteredResources = useMemo(() => {
+    return resources.filter(r => {
+      // 1. Search keyword (matches title, summary, authors)
+      const q = searchQuery.toLowerCase();
+      const matchesSearch = !q || (
+        (r.title && r.title.toLowerCase().includes(q)) ||
+        (r.summary && r.summary.toLowerCase().includes(q)) ||
+        (r.authors && r.authors.some(a => a.toLowerCase().includes(q)))
+      );
+
+      // 2. Resource Type (OR within group)
+      const activeTypes = Object.keys(selectedTypes).filter(k => selectedTypes[k]);
+      const matchesType = activeTypes.length === 0 || activeTypes.includes(r.resource_type);
+
+      // 3. Industry (OR within group)
+      const activeIndustries = Object.keys(selectedIndustries).filter(k => selectedIndustries[k]);
+      const matchesIndustry = activeIndustries.length === 0 || 
+        (r.sector_tags && r.sector_tags.some(tag => activeIndustries.includes(tag)));
+
+      // 4. DML Level (OR within group)
+      const activeDml = Object.keys(selectedDmlLevels).filter(k => selectedDmlLevels[k]);
+      const matchesDml = activeDml.length === 0 || 
+        (r.dml_levels && r.dml_levels.some(level => activeDml.includes(level)));
+
+      return matchesSearch && matchesType && matchesIndustry && matchesDml;
+    });
+  }, [resources, searchQuery, selectedTypes, selectedIndustries, selectedDmlLevels]);
+
+  // ---------------------------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------------------------
   return (
     <>
       {/* Page Header & Global Search */}
       <div className="bg-surface-container-low border-b border-outline-variant py-xl w-full">
         <div className="max-w-container-max mx-auto px-gutter text-center flex flex-col items-center">
-          <h1 className="font-headline-xl text-headline-xl text-primary mb-sm">Industry Resources &amp; Tools</h1>
+          <h1 className="font-headline-xl text-headline-xl text-primary mb-sm">DPIRD Digital Library</h1>
           <p className="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mb-xl">
-            Explore curated Industry Digital Plans, software tools, and expert guides designed to accelerate the growth and efficiency of your business.
+            Explore curated industry digital plans, research reports, and technical publications designed to accelerate the growth of your business.
           </p>
           <div className="relative w-full max-w-2xl">
             <span className="material-symbols-outlined absolute left-md top-1/2 -translate-y-1/2 text-outline text-[28px]">search</span>
-            <input className="w-full pl-[56px] pr-32 py-md border border-outline-variant rounded-xl bg-surface-container-lowest text-body-lg font-body-lg shadow-sm focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none transition-shadow" placeholder="Search for tools, digital plans, or topics..." type="text"/>
+            <input 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-[56px] pr-32 py-md border border-outline-variant rounded-xl bg-surface-container-lowest text-body-lg font-body-lg shadow-sm focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none transition-shadow" 
+              placeholder="Search for resources, authors, or topics..." 
+              type="text"
+            />
             <button className="absolute right-sm top-1/2 -translate-y-1/2 bg-primary text-on-primary px-lg py-sm rounded-lg font-label-md text-label-md hover:bg-primary-container transition-colors shadow-sm">
               Find Resources
             </button>
@@ -24,184 +252,232 @@ export default function Resources() {
       <main className="flex-1 max-w-container-max mx-auto w-full px-gutter py-xl flex flex-col md:flex-row gap-xl relative">
         {/* Left Sidebar: Filters */}
         <aside className="w-full md:w-64 flex-shrink-0 flex flex-col gap-lg">
-          {/* Filter Group: Categories */}
-          <div className="bg-surface-container-lowest border border-outline-variant rounded-lg p-md shadow-sm">
-            <h2 className="font-label-md text-label-md text-primary font-bold mb-md pb-xs border-b border-outline-variant tracking-wide">CATEGORIES</h2>
-            <ul className="flex flex-col gap-sm">
-              <li>
-                <label className="flex items-center gap-sm cursor-pointer group">
-                  <input className="rounded border-outline-variant text-primary focus:ring-primary h-4 w-4 bg-surface-container-lowest" type="checkbox"/>
-                  <span className="font-body-md text-body-md text-on-surface-variant group-hover:text-primary transition-colors">E-commerce</span>
-                </label>
-              </li>
-              <li>
-                <label className="flex items-center gap-sm cursor-pointer group">
-                  <input defaultChecked className="rounded border-outline-variant text-primary focus:ring-primary h-4 w-4 bg-surface-container-lowest" type="checkbox"/>
-                  <span className="font-body-md text-body-md text-on-surface-variant group-hover:text-primary transition-colors font-semibold text-primary">HR &amp; Payroll</span>
-                </label>
-              </li>
-              <li>
-                <label className="flex items-center gap-sm cursor-pointer group">
-                  <input className="rounded border-outline-variant text-primary focus:ring-primary h-4 w-4 bg-surface-container-lowest" type="checkbox"/>
-                  <span className="font-body-md text-body-md text-on-surface-variant group-hover:text-primary transition-colors">Customer Engagement</span>
-                </label>
-              </li>
-              <li>
-                <label className="flex items-center gap-sm cursor-pointer group">
-                  <input className="rounded border-outline-variant text-primary focus:ring-primary h-4 w-4 bg-surface-container-lowest" type="checkbox"/>
-                  <span className="font-body-md text-body-md text-on-surface-variant group-hover:text-primary transition-colors">Cybersecurity</span>
-                </label>
-              </li>
-              <li>
-                <label className="flex items-center gap-sm cursor-pointer group">
-                  <input className="rounded border-outline-variant text-primary focus:ring-primary h-4 w-4 bg-surface-container-lowest" type="checkbox"/>
-                  <span className="font-body-md text-body-md text-on-surface-variant group-hover:text-primary transition-colors">Data Analytics</span>
-                </label>
-              </li>
-              <li>
-                <label className="flex items-center gap-sm cursor-pointer group">
-                  <input className="rounded border-outline-variant text-primary focus:ring-primary h-4 w-4 bg-surface-container-lowest" type="checkbox"/>
-                  <span className="font-body-md text-body-md text-on-surface-variant group-hover:text-primary transition-colors">Inventory Management</span>
-                </label>
-              </li>
-            </ul>
+          
+          <div className="flex items-center justify-between">
+            <h2 className="font-headline-sm text-headline-sm text-on-surface">Filters</h2>
+            {hasAnyFilterActive && (
+              <button 
+                onClick={handleClearFilters}
+                className="text-primary font-label-sm text-label-sm hover:underline"
+              >
+                Clear all filters
+              </button>
+            )}
           </div>
-          {/* Filter Group: Resource Type */}
+
           <div className="bg-surface-container-lowest border border-outline-variant rounded-lg p-md shadow-sm">
-            <h2 className="font-label-md text-label-md text-primary font-bold mb-md pb-xs border-b border-outline-variant tracking-wide">RESOURCE TYPE</h2>
-            <ul className="flex flex-col gap-sm">
-              <li>
-                <label className="flex items-center gap-sm cursor-pointer group">
-                  <input defaultChecked className="border-outline-variant text-primary focus:ring-primary h-4 w-4 bg-surface-container-lowest" name="resource_type" type="radio"/>
-                  <span className="font-body-md text-body-md text-on-surface-variant group-hover:text-primary transition-colors">All Types</span>
+            {/* Filter Group: Resource Type */}
+            <FilterGroup
+              label="Resource Type"
+              sectionKey="resource_type"
+              activeCount={Object.values(selectedTypes).filter(Boolean).length}
+              openSections={openSections}
+              toggleSection={toggleSection}
+            >
+              {[
+                { value: 'book_chapter', label: 'Book / Chapter' },
+                { value: 'journal_article', label: 'Journal Article' },
+                { value: 'research_report', label: 'Research Report' },
+              ].map(opt => (
+                <label key={opt.value} className="flex items-center gap-sm cursor-pointer group">
+                  <input
+                    checked={!!selectedTypes[opt.value]}
+                    onChange={() => handleTypeChange(opt.value)}
+                    className="rounded border-outline-variant text-primary focus:ring-primary h-4 w-4 bg-surface-container-lowest" 
+                    type="checkbox"
+                  />
+                  <span className="font-body-md text-body-md text-on-surface-variant group-hover:text-primary transition-colors">
+                    {opt.label}
+                  </span>
                 </label>
-              </li>
-              <li>
-                <label className="flex items-center gap-sm cursor-pointer group">
-                  <input className="border-outline-variant text-primary focus:ring-primary h-4 w-4 bg-surface-container-lowest" name="resource_type" type="radio"/>
-                  <span className="font-body-md text-body-md text-on-surface-variant group-hover:text-primary transition-colors">Industry Digital Plan (IDP)</span>
+              ))}
+            </FilterGroup>
+
+            {/* Filter Group: Industry */}
+            <FilterGroup
+              label="Industry"
+              sectionKey="industry"
+              activeCount={Object.values(selectedIndustries).filter(Boolean).length}
+              openSections={openSections}
+              toggleSection={toggleSection}
+            >
+              {availableIndustries.length === 0 && (
+                <span className="text-on-surface-variant text-sm italic">Loading...</span>
+              )}
+              {availableIndustries.map(slug => (
+                <label key={slug} className="flex items-center gap-sm cursor-pointer group">
+                  <input
+                    checked={!!selectedIndustries[slug]}
+                    onChange={() => handleIndustryChange(slug)}
+                    className="rounded border-outline-variant text-primary focus:ring-primary h-4 w-4 bg-surface-container-lowest" 
+                    type="checkbox"
+                  />
+                  <span className="font-body-md text-body-md text-on-surface-variant group-hover:text-primary transition-colors">
+                    {sectorsMap[slug] || slug}
+                  </span>
                 </label>
-              </li>
-              <li>
-                <label className="flex items-center gap-sm cursor-pointer group">
-                  <input className="border-outline-variant text-primary focus:ring-primary h-4 w-4 bg-surface-container-lowest" name="resource_type" type="radio"/>
-                  <span className="font-body-md text-body-md text-on-surface-variant group-hover:text-primary transition-colors">Software Tool</span>
+              ))}
+            </FilterGroup>
+
+            {/* Filter Group: DML */}
+            <FilterGroup
+              label="Digital Maturity Level"
+              sectionKey="dml_level"
+              activeCount={Object.values(selectedDmlLevels).filter(Boolean).length}
+              openSections={openSections}
+              toggleSection={toggleSection}
+            >
+              {[
+                { value: 'foundational', label: 'Foundational (0–24)' },
+                { value: 'emerging',     label: 'Emerging (25–49)' },
+                { value: 'established',  label: 'Established (50–74)' },
+                { value: 'advanced',     label: 'Advanced (75–100)' },
+              ].map(opt => (
+                <label key={opt.value} className="flex items-center gap-sm cursor-pointer group">
+                  <input
+                    checked={!!selectedDmlLevels[opt.value]}
+                    onChange={() => handleDmlChange(opt.value)}
+                    className="rounded border-outline-variant text-primary focus:ring-primary h-4 w-4 bg-surface-container-lowest" 
+                    type="checkbox"
+                  />
+                  <span className="font-body-md text-body-md text-on-surface-variant group-hover:text-primary transition-colors">
+                    {opt.label}
+                  </span>
                 </label>
-              </li>
-              <li>
-                <label className="flex items-center gap-sm cursor-pointer group">
-                  <input className="border-outline-variant text-primary focus:ring-primary h-4 w-4 bg-surface-container-lowest" name="resource_type" type="radio"/>
-                  <span className="font-body-md text-body-md text-on-surface-variant group-hover:text-primary transition-colors">Guide / Blueprint</span>
-                </label>
-              </li>
-            </ul>
+              ))}
+            </FilterGroup>
           </div>
-          <button className="w-full py-sm border border-outline-variant text-on-surface-variant font-label-md text-label-md rounded-lg hover:bg-surface-variant transition-colors">
-            Clear Filters
-          </button>
         </aside>
 
         {/* Right Content: Grid */}
         <section className="flex-1 flex flex-col gap-lg">
           {/* Results Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-sm bg-surface-container-lowest p-sm px-md rounded-lg border border-outline-variant shadow-sm">
-            <span className="font-body-md text-body-md text-on-surface-variant">Showing <strong className="text-on-surface">12</strong> resources for <strong className="text-on-surface">HR &amp; Payroll</strong></span>
+            <span className="font-body-md text-body-md text-on-surface-variant">
+              Showing <strong className="text-on-surface">{filteredResources.length}</strong> of <strong className="text-on-surface">{resources.length}</strong> resources
+            </span>
             <div className="flex items-center gap-sm w-full sm:w-auto">
               <span className="font-body-md text-body-md text-on-surface-variant whitespace-nowrap">Sort by:</span>
               <select className="border border-outline-variant rounded-lg bg-surface-container-lowest text-body-md font-body-md py-xs pl-sm pr-xl focus:ring-2 focus:ring-primary focus:outline-none w-full sm:w-auto">
-                <option>Recommended</option>
-                <option>Newest Added</option>
+                <option>Newest Published</option>
                 <option>A-Z</option>
               </select>
             </div>
           </div>
+
+          {/* States (Loading / Error / Empty) */}
+          {loading && (
+             <div className="flex justify-center items-center py-2xl">
+               <span className="material-symbols-outlined animate-spin text-primary text-4xl">
+                 progress_activity
+               </span>
+             </div>
+          )}
+
+          {!loading && error && (
+            <div className="bg-error-container text-on-error-container rounded-lg p-lg text-center">
+              <p className="font-body-md">Could not load resources. Please try again. ({error})</p>
+            </div>
+          )}
+
+          {!loading && !error && filteredResources.length === 0 && (
+            <div className="text-center py-2xl">
+              <span className="material-symbols-outlined text-on-surface-variant text-5xl">
+                search_off
+              </span>
+              <p className="font-body-lg text-on-surface-variant mt-md">
+                No resources match your current filters.
+              </p>
+              {hasAnyFilterActive && (
+                <button onClick={handleClearFilters} className="text-primary font-label-md mt-sm hover:underline">
+                  Clear all filters
+                </button>
+              )}
+            </div>
+          )}
+
           {/* Bento Grid of Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-lg">
-            {/* Card 1 */}
-            <article className="bg-surface-container-lowest border border-outline-variant rounded-lg overflow-hidden flex flex-col hover:shadow-md transition-shadow duration-300 group">
-              <div className="h-48 w-full bg-cover bg-center relative overflow-hidden" style={{backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuBBIjxh5XhQNuJ4N80pGE3slA00SS5XpgebW-1wFAbu4sQ_wPDDqjx-GRpXbPzhfodyHjiirotdZHCAAF7Evu3yJWASpLJljlF3r57mBKI9dNwnDgV44TXtlrNwlJb7pxZwSaQKC0fAB_UC5PHGTdb-WfArGBE-G1L1Na9YPmgM-iZb35CPzxFNfOcQ3fc0zb5rsXZQkekOLgfGV8zJhH_QWbN8z-TMkyaHjktSuk5GmIjIJv33HJ6AV1WjQPDre1T4Sjb74mmWy6aS')"}}>
-                <div className="absolute top-sm right-sm bg-surface-container-lowest/90 backdrop-blur-sm px-sm py-xs rounded text-primary font-label-sm text-label-sm font-bold border border-outline-variant">
-                  Industry Digital Plan
-                </div>
-              </div>
-              <div className="p-lg flex flex-col flex-1 border-t border-outline-variant">
-                <h3 className="font-headline-md text-headline-md text-on-surface mb-xs group-hover:text-primary transition-colors">HR Management IDP</h3>
-                <p className="font-body-md text-body-md text-on-surface-variant mb-lg flex-1 line-clamp-3">A complete roadmap for digitizing your human resources operations. Includes maturity assessments and recommended digital solutions for core HR, payroll, and talent management.</p>
-                <div className="flex items-center justify-between mt-auto">
-                  <span className="font-label-sm text-label-sm text-on-surface-variant bg-surface-variant px-sm py-xs rounded">Guide</span>
-                  <a className="inline-flex items-center justify-center border border-primary text-primary px-md py-sm rounded-lg font-label-md text-label-md hover:bg-primary hover:text-on-primary transition-colors" href="#">
-                    Learn More
-                  </a>
-                </div>
-              </div>
-            </article>
-            {/* Card 2 */}
-            <article className="bg-surface-container-lowest border border-outline-variant rounded-lg overflow-hidden flex flex-col hover:shadow-md transition-shadow duration-300 group">
-              <div className="h-48 w-full bg-cover bg-center relative overflow-hidden" style={{backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuBIR3YRevo1yzOQoKWDH_ai7Tu22WkYQxUjxoYRjf4l8IGzrvTqkHviFQ6HamkZdB47eBj0Wv0hUIeezwJmKA3XQhtkUZ2KVbWd43AGDlKMoRbb_NKaeO__nq8SiUa6hfMU2W-zhUqqb0p0PQfGQmFx5c491RrtmAbAU2vg33FK3jW98sZLQI1yHk_-uN8RBx8MsN-v1ZJbVvlJJGcEtkdIXI-9NPYXvIq8M-8z5_RoLyUJG-zZF5Bo0WyU6fDfhD4SX77mMfbos_aQ')"}}>
-                <div className="absolute top-sm right-sm bg-surface-container-lowest/90 backdrop-blur-sm px-sm py-xs rounded text-secondary font-label-sm text-label-sm font-bold border border-outline-variant">
-                  Software Tool
-                </div>
-              </div>
-              <div className="p-lg flex flex-col flex-1 border-t border-outline-variant">
-                <h3 className="font-headline-md text-headline-md text-on-surface mb-xs group-hover:text-primary transition-colors">Automated Payroll Systems</h3>
-                <p className="font-body-md text-body-md text-on-surface-variant mb-lg flex-1 line-clamp-3">Discover evaluated payroll software solutions tailored for WA small businesses. Compare features like Single Touch Payroll (STP) compliance, automated superannuation, and employee self-service portals.</p>
-                <div className="flex items-center justify-between mt-auto">
-                  <span className="font-label-sm text-label-sm text-on-surface-variant bg-surface-variant px-sm py-xs rounded">Tool Comparison</span>
-                  <a className="inline-flex items-center justify-center border border-primary text-primary px-md py-sm rounded-lg font-label-md text-label-md hover:bg-primary hover:text-on-primary transition-colors" href="#">
-                    View Tools
-                  </a>
-                </div>
-              </div>
-            </article>
-            {/* Card 3 */}
-            <article className="bg-surface-container-lowest border border-outline-variant rounded-lg overflow-hidden flex flex-col hover:shadow-md transition-shadow duration-300 group">
-              <div className="h-48 w-full bg-cover bg-center relative overflow-hidden flex items-center justify-center bg-primary-fixed-dim">
-                <span className="material-symbols-outlined text-[64px] text-primary" style={{fontVariationSettings: "'FILL' 1"}}>fact_check</span>
-                <div className="absolute top-sm right-sm bg-surface-container-lowest/90 backdrop-blur-sm px-sm py-xs rounded text-primary font-label-sm text-label-sm font-bold border border-outline-variant">
-                  Readiness Check
-                </div>
-              </div>
-              <div className="p-lg flex flex-col flex-1 border-t border-outline-variant">
-                <h3 className="font-headline-md text-headline-md text-on-surface mb-xs group-hover:text-primary transition-colors">Digital Readiness Assessment</h3>
-                <p className="font-body-md text-body-md text-on-surface-variant mb-lg flex-1 line-clamp-3">Take a 5-minute interactive assessment to evaluate your current HR and operational digital maturity. Receive a customized list of recommended tools and next steps based on your score.</p>
-                <div className="flex items-center justify-between mt-auto">
-                  <span className="font-label-sm text-label-sm text-on-surface-variant bg-surface-variant px-sm py-xs rounded">Interactive Tool</span>
-                  <a className="inline-flex items-center justify-center bg-secondary text-on-secondary px-md py-sm rounded-lg font-label-md text-label-md hover:bg-secondary-container hover:text-on-secondary-container transition-colors shadow-sm" href="#">
-                    Start Assessment
-                  </a>
-                </div>
-              </div>
-            </article>
-            {/* Card 4 */}
-            <article className="bg-surface-container-lowest border border-outline-variant rounded-lg overflow-hidden flex flex-col hover:shadow-md transition-shadow duration-300 group">
-              <div className="h-48 w-full bg-cover bg-center relative overflow-hidden" style={{backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuCPEO_rzRhe_Y33WV7Ac84aLh-h66y9vK3riz2VsCJLxH-Z6pCCDiWOFbkAgP_v1WkuZQtrck0H_agWf2_nCQv9ByRP7noz5Zqg44fPMhvXUqtEICbQd45mF3cxjs66zMDl5DfI3X30GcGVziAXnWNabq5r66TbgcLWxevL42v0JjFIWliLg63mgKxm8FHPXU1lmwjHabIaUzonTB3aEVwtAnaL5kXWTSHfY0C26ygaDihFbgHZAWdqmXniZfWRSIxw0u1585r-mwoS')"}}>
-                <div className="absolute top-sm right-sm bg-surface-container-lowest/90 backdrop-blur-sm px-sm py-xs rounded text-secondary font-label-sm text-label-sm font-bold border border-outline-variant">
-                  Software Tool
-                </div>
-              </div>
-              <div className="p-lg flex flex-col flex-1 border-t border-outline-variant">
-                <h3 className="font-headline-md text-headline-md text-on-surface mb-xs group-hover:text-primary transition-colors">Employee Engagement Platforms</h3>
-                <p className="font-body-md text-body-md text-on-surface-variant mb-lg flex-1 line-clamp-3">Explore platforms designed to boost morale and retention. Features include pulse surveys, peer recognition tools, and unified internal communications suitable for remote and hybrid teams.</p>
-                <div className="flex items-center justify-between mt-auto">
-                  <span className="font-label-sm text-label-sm text-on-surface-variant bg-surface-variant px-sm py-xs rounded">Directory</span>
-                  <a className="inline-flex items-center justify-center border border-primary text-primary px-md py-sm rounded-lg font-label-md text-label-md hover:bg-primary hover:text-on-primary transition-colors" href="#">
-                    View Tools
-                  </a>
-                </div>
-              </div>
-            </article>
-          </div>
-          {/* Pagination */}
-          <div className="flex justify-center items-center mt-xl gap-sm">
-            <button className="w-10 h-10 flex items-center justify-center border border-outline-variant rounded-lg text-on-surface-variant hover:bg-surface-variant transition-colors disabled:opacity-50" disabled>
-              <span className="material-symbols-outlined">chevron_left</span>
-            </button>
-            <button className="w-10 h-10 flex items-center justify-center bg-primary text-on-primary rounded-lg font-label-md">1</button>
-            <button className="w-10 h-10 flex items-center justify-center border border-outline-variant rounded-lg text-on-surface hover:bg-surface-variant transition-colors font-label-md">2</button>
-            <button className="w-10 h-10 flex items-center justify-center border border-outline-variant rounded-lg text-on-surface hover:bg-surface-variant transition-colors font-label-md">3</button>
-            <button className="w-10 h-10 flex items-center justify-center border border-outline-variant rounded-lg text-on-surface-variant hover:bg-surface-variant transition-colors">
-              <span className="material-symbols-outlined">chevron_right</span>
-            </button>
+            {!loading && !error && filteredResources.map((resource) => {
+              // Extract UI properties
+              const typeConfig = typeLabels[resource.resource_type] || { label: resource.resource_type, color: 'bg-gray-100 text-gray-800 border-gray-200' };
+              const categoryLabel = getCategoryLabel(resource.sector_tags, sectorsMap);
+              const summaryText = resource.summary || (resource.abstract ? resource.abstract.substring(0, 200) + '...' : '');
+              const dmlBadge = formatDmlBadge(resource.dml_levels);
+              
+              return (
+                <article key={resource.id} className="bg-surface-container-lowest border border-outline-variant rounded-lg flex flex-col hover:shadow-md transition-shadow duration-300 group p-lg">
+                  {/* Card Header: Badges */}
+                  <div className="flex flex-wrap items-center gap-xs mb-sm">
+                    <span className={`font-label-sm text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full border ${typeConfig.color}`}>
+                      {typeConfig.label}
+                    </span>
+                    <span className="font-label-sm text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full border border-outline-variant text-on-surface-variant bg-surface-variant">
+                      {categoryLabel}
+                    </span>
+                  </div>
+
+                  {/* Title & Metadata */}
+                  {/* [CC-002] Título del recurso, autores y año */}
+                  <h3 className="font-headline-md text-headline-md text-on-surface mb-xs group-hover:text-primary transition-colors line-clamp-2">
+                    {resource.title}
+                  </h3>
+                  <div className="font-body-sm text-body-sm text-on-surface-variant mb-md flex items-center gap-xs flex-wrap">
+                    <span className="material-symbols-outlined text-[16px]">person</span>
+                    <span>{formatAuthors(resource.authors)}</span>
+                    <span>•</span>
+                    <span className="material-symbols-outlined text-[16px]">calendar_today</span>
+                    <span>{formatYear(resource.publication_date)}</span>
+                  </div>
+
+                  {/* Summary */}
+                  <p className="font-body-md text-body-md text-on-surface-variant mb-lg flex-1 line-clamp-3">
+                    {summaryText}
+                  </p>
+
+                  {/* Optional Details (Journal / Report Num / DML) */}
+                  {(dmlBadge || resource.journal_name || resource.report_number) && (
+                    <div className="bg-surface-container-low rounded p-sm mb-lg flex flex-col gap-xs">
+                      {dmlBadge && (
+                        <div className="flex items-center gap-xs">
+                          <span className="material-symbols-outlined text-[14px] text-primary">trending_up</span>
+                          <span className="font-body-xs text-body-xs font-semibold text-on-surface-variant">DML Level:</span>
+                          <span className="font-body-xs text-body-xs text-on-surface">{dmlBadge}</span>
+                        </div>
+                      )}
+                      {resource.journal_name && (
+                        <div className="flex items-center gap-xs">
+                          <span className="material-symbols-outlined text-[14px] text-primary">menu_book</span>
+                          <span className="font-body-xs text-body-xs font-semibold text-on-surface-variant">Journal:</span>
+                          <span className="font-body-xs text-body-xs text-on-surface">{resource.journal_name} {resource.volume_issue ? `(${resource.volume_issue})` : ''}</span>
+                        </div>
+                      )}
+                      {resource.report_number && (
+                        <div className="flex items-center gap-xs">
+                          <span className="material-symbols-outlined text-[14px] text-primary">article</span>
+                          <span className="font-body-xs text-body-xs font-semibold text-on-surface-variant">Report #:</span>
+                          <span className="font-body-xs text-body-xs text-on-surface">{resource.report_number}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Action Button */}
+                  {/* [CC-002] Botón de acceso a biblioteca color navy DPIRD */}
+                  <div className="mt-auto">
+                    <a
+                      href={resource.library_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full flex items-center justify-center font-label-md text-label-md py-2 px-4 rounded font-bold shadow-sm transition-colors bg-[#003D7B] text-white hover:bg-[#002a57] cursor-pointer"
+                    >
+                      View in DPIRD Library
+                      <span className="material-symbols-outlined text-sm ml-1 align-middle">open_in_new</span>
+                    </a>
+                  </div>
+                </article>
+              );
+            })}
           </div>
         </section>
         
