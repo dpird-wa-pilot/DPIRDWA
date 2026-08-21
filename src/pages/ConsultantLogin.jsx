@@ -117,6 +117,7 @@ export default function ConsultantLogin() {
             />
           </div>
 
+          <div>
             <div className="flex justify-between items-center mb-2">
               <label className="block text-sm font-medium text-on-surface">Password</label>
               <button
