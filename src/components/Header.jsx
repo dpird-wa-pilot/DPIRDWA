@@ -27,9 +27,9 @@ export default function Header() {
           <button aria-label="Search" className="hover:opacity-80 scale-98 transition-all p-sm">
             <span className="material-symbols-outlined">search</span>
           </button>
-          <button aria-label="Account" className="hover:opacity-80 scale-98 transition-all p-sm">
+          <Link to="/consultant/dashboard" aria-label="Account" className="hover:opacity-80 scale-98 transition-all p-sm inline-flex">
             <span className="material-symbols-outlined">account_circle</span>
-          </button>
+          </Link>
           <button aria-label="Help" className="hover:opacity-80 scale-98 transition-all p-sm">
             <span className="material-symbols-outlined">help_outline</span>
           </button>
