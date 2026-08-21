@@ -1,3 +1,4 @@
+// [DEPRECATED CC-004] This component is deprecated. Use the new Advisor wizard in pages/Advisor.jsx instead.
 import React, { useState } from 'react'
 import { ArrowRight, CheckCircle2, ChevronRight, Check } from 'lucide-react'
 
