@@ -1,0 +1,1098 @@
+<title>DPIRD Knowledge Graph</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<style>
+  /* ── Tokens ─────────────────────────────────────────── */
+  :root {
+    --bg:          #090f1c;
+    --surface:     #111827;
+    --surface-2:   #1a2438;
+    --surface-3:   #243047;
+    --border:      #2a3a52;
+    --border-soft: #1f2e44;
+    --text:        #e2e8f0;
+    --text-muted:  #94a3b8;
+    --text-dim:    #4f6380;
+
+    --c-response:  #3b82f6;
+    --c-tag:       #22c55e;
+    --c-grant:     #ef4444;
+    --c-provider:  #a855f7;
+    --c-resource:  #eab308;
+
+    --dml-bg:      #1e3a2a;
+    --dml-fg:      #4ade80;
+
+    --panel-w:     320px;
+    --header-h:    56px;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg:          #eef2f8;
+      --surface:     #ffffff;
+      --surface-2:   #f1f5fb;
+      --surface-3:   #e4eaf5;
+      --border:      #c8d5e8;
+      --border-soft: #dbe5f4;
+      --text:        #0f172a;
+      --text-muted:  #475569;
+      --text-dim:    #94a3b8;
+      --dml-bg:      #d1fae5;
+      --dml-fg:      #16a34a;
+    }
+  }
+
+  :root[data-theme="light"] {
+    --bg:          #eef2f8;
+    --surface:     #ffffff;
+    --surface-2:   #f1f5fb;
+    --surface-3:   #e4eaf5;
+    --border:      #c8d5e8;
+    --border-soft: #dbe5f4;
+    --text:        #0f172a;
+    --text-muted:  #475569;
+    --text-dim:    #94a3b8;
+    --dml-bg:      #d1fae5;
+    --dml-fg:      #16a34a;
+  }
+
+  /* ── Reset ───────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%; width: 100%;
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+  }
+
+  /* ── Layout ──────────────────────────────────────────── */
+  .shell {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  /* ── Header ──────────────────────────────────────────── */
+  header {
+    height: var(--header-h);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 0 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    z-index: 10;
+  }
+
+  .header-eyebrow {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+
+  .header-divider {
+    width: 1px;
+    height: 28px;
+    background: var(--border);
+    flex-shrink: 0;
+  }
+
+  .session-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .business-name {
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text);
+  }
+
+  .session-meta {
+    font-size: 11px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .dml-pill {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--dml-bg);
+    color: var(--dml-fg);
+    border-radius: 100px;
+    padding: 4px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .dml-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--dml-fg);
+    flex-shrink: 0;
+  }
+
+  /* ── Body ────────────────────────────────────────────── */
+  .body {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* ── Canvas ──────────────────────────────────────────── */
+  .canvas-wrap {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+
+  canvas {
+    display: block;
+    cursor: default;
+    width: 100%;
+    height: 100%;
+  }
+
+  canvas.hovering { cursor: pointer; }
+  canvas.dragging  { cursor: grabbing; }
+
+  /* ── Legend ──────────────────────────────────────────── */
+  .legend {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  .legend-title {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 3px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ── Stats strip ─────────────────────────────────────── */
+  .stats {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    display: flex;
+    gap: 8px;
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  .stat-chip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 11px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .stat-chip strong {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  .stat-chip .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ── Detail Panel ────────────────────────────────────── */
+  .panel {
+    width: var(--panel-w);
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    transform: translateX(var(--panel-w));
+    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+    overflow: hidden;
+  }
+
+  .panel.open {
+    transform: translateX(0);
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 20px;
+    border-bottom: 1px solid var(--border-soft);
+    flex-shrink: 0;
+  }
+
+  .panel-type-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .panel-title {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--text);
+    text-wrap: balance;
+  }
+
+  .close-btn {
+    background: var(--surface-3);
+    border: none;
+    border-radius: 6px;
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    transition: background 0.15s;
+    font-size: 14px;
+  }
+
+  .close-btn:hover { background: var(--border); }
+
+  .panel-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .panel-body::-webkit-scrollbar { width: 4px; }
+  .panel-body::-webkit-scrollbar-track { background: transparent; }
+  .panel-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .panel-section-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+
+  .panel-value {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.5;
+  }
+
+  .score-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .score-bar-bg {
+    flex: 1;
+    height: 6px;
+    background: var(--surface-3);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .score-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+  }
+
+  .score-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+    width: 36px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .tag-chip {
+    padding: 3px 9px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 500;
+    background: var(--surface-3);
+    color: var(--text-muted);
+    border: 1px solid var(--border-soft);
+  }
+
+  .reasoning-text {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    background: var(--surface-2);
+    border-radius: 8px;
+    padding: 12px;
+    border: 1px solid var(--border-soft);
+  }
+
+  .dim-badge {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+</style>
+
+<div class="shell">
+  <header>
+    <span class="header-eyebrow">Knowledge Graph</span>
+    <div class="header-divider"></div>
+    <div class="session-info">
+      <span class="business-name">Harvest Moon Organics</span>
+      <span class="session-meta">Food &amp; Beverage · Geraldton, Regional WA · Aug 21 2026</span>
+    </div>
+    <div class="dml-pill">
+      <span class="dml-dot"></span>
+      Emerging · 45%
+    </div>
+  </header>
+
+  <div class="body">
+    <div class="canvas-wrap">
+      <canvas id="graph"></canvas>
+
+      <div class="legend">
+        <div class="legend-title">Node types</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#3b82f6"></span>Response</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#22c55e"></span>Tag</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#ef4444"></span>Grant</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#a855f7"></span>Provider</div>
+      </div>
+
+      <div class="stats" id="stats">
+        <div class="stat-chip"><span class="dot" style="background:#3b82f6"></span>5 Responses</div>
+        <div class="stat-chip"><span class="dot" style="background:#22c55e"></span>5 Tags</div>
+        <div class="stat-chip"><span class="dot" style="background:#ef4444"></span>2 Grants</div>
+        <div class="stat-chip"><span class="dot" style="background:#a855f7"></span>2 Providers</div>
+      </div>
+    </div>
+
+    <div class="panel" id="panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-type-badge" id="panel-badge"></div>
+          <div class="panel-title" id="panel-title"></div>
+        </div>
+        <button class="close-btn" id="close-btn" title="Close">✕</button>
+      </div>
+      <div class="panel-body" id="panel-body"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Data ────────────────────────────────────────────────────────────
+const SESSION_DATA = {
+  nodes: [
+    // Responses
+    {
+      id:'r1', type:'response', label:'Basic MYOB\naccounting',
+      dimension:'Operations',
+      detail:'Uses basic MYOB accounting software. No digital inventory management. Manual invoicing process.',
+      color:'#3b82f6', radius:18
+    },
+    {
+      id:'r2', type:'response', label:'No online\nsales',
+      dimension:'Digital',
+      detail:'No e-commerce presence or online sales channel. Website exists but is informational only.',
+      color:'#3b82f6', radius:18
+    },
+    {
+      id:'r3', type:'response', label:'Sells to\nsupermarkets',
+      dimension:'Market',
+      detail:'Primary sales channel is local and regional supermarkets. Limited direct-to-consumer presence.',
+      color:'#3b82f6', radius:18
+    },
+    {
+      id:'r4', type:'response', label:'Export\ninterest',
+      dimension:'Market',
+      detail:'Strong interest in exporting to South-East Asian markets, particularly Singapore and Japan.',
+      color:'#3b82f6', radius:18
+    },
+    {
+      id:'r5', type:'response', label:'5–19\nemployees',
+      dimension:'Profile',
+      detail:'Small business with 12 full-time equivalent employees. Turnover $1.2M–$5M range.',
+      color:'#3b82f6', radius:18
+    },
+    // Tags
+    {
+      id:'t1', type:'tag', label:'Digital\nAdoption',
+      detail:'Business is at an early stage of digital tool adoption. Key opportunity to upgrade operational systems.',
+      color:'#22c55e', radius:20
+    },
+    {
+      id:'t2', type:'tag', label:'Quality\nControl',
+      detail:'Food safety and quality control processes identified as a growth area for regulatory compliance.',
+      color:'#22c55e', radius:20
+    },
+    {
+      id:'t3', type:'tag', label:'Export\nReady',
+      detail:'Business shows intent and basic capability for export. Requires market access support.',
+      color:'#22c55e', radius:20
+    },
+    {
+      id:'t4', type:'tag', label:'Market\nDiversification',
+      detail:'Current market concentration risk identified. Opportunity to diversify into new channels and regions.',
+      color:'#22c55e', radius:20
+    },
+    {
+      id:'t5', type:'tag', label:'SME\nScale',
+      detail:'Business profile matches SME-targeted program criteria across multiple grant programs.',
+      color:'#22c55e', radius:20
+    },
+    // Grants
+    {
+      id:'g1', type:'grant', label:'Digital Transformation\nGrant',
+      score:0.87,
+      matchedTags:['Digital Adoption','Quality Control','SME Scale'],
+      reasoning:'High match on digital_adoption and quality_control tags. Business size and ABN registration satisfy eligibility criteria. Non-competitive rolling program — suitable for immediate application.',
+      url:'#', color:'#ef4444', radius:22
+    },
+    {
+      id:'g2', type:'grant', label:'Export Development\nProgram',
+      score:0.74,
+      matchedTags:['Export Ready','Market Diversification'],
+      reasoning:'Matched on export_ready and market_diversification tags. Applicant meets geographic scope (Regional WA) and sector criteria. Competitive window — recommend Q4 application.',
+      url:'#', color:'#ef4444', radius:22
+    },
+    // Providers
+    {
+      id:'p1', type:'provider', label:'TechWest\nDigital Advisory',
+      score:0.82,
+      matchedTags:['Digital Adoption','SME Scale'],
+      reasoning:'Specialist in SME digital transformation. Covers MYOB-to-Xero migration, e-commerce setup, and inventory management — directly aligned with identified gaps.',
+      color:'#a855f7', radius:20
+    },
+    {
+      id:'p2', type:'provider', label:'Export WA\nConsultants',
+      score:0.71,
+      matchedTags:['Export Ready','Market Diversification'],
+      reasoning:'Licensed export adviser with SE Asia market specialisation. Has assisted 12 WA food manufacturers enter Singapore market in the past 3 years.',
+      color:'#a855f7', radius:20
+    }
+  ],
+
+  edges: [
+    // Response → Tag
+    {source:'r1', target:'t1', weight:0.9},
+    {source:'r2', target:'t1', weight:0.8},
+    {source:'r1', target:'t2', weight:0.7},
+    {source:'r3', target:'t4', weight:0.8},
+    {source:'r4', target:'t3', weight:0.95},
+    {source:'r4', target:'t4', weight:0.7},
+    {source:'r5', target:'t5', weight:0.9},
+    // Tag → Grant
+    {source:'t1', target:'g1', weight:0.87},
+    {source:'t2', target:'g1', weight:0.87},
+    {source:'t5', target:'g1', weight:0.87},
+    {source:'t3', target:'g2', weight:0.74},
+    {source:'t4', target:'g2', weight:0.74},
+    // Tag → Provider
+    {source:'t1', target:'p1', weight:0.82},
+    {source:'t5', target:'p1', weight:0.82},
+    {source:'t3', target:'p2', weight:0.71},
+    {source:'t4', target:'p2', weight:0.71},
+  ]
+};
+
+// ── Canvas setup ─────────────────────────────────────────────────────
+const canvas = document.getElementById('graph');
+const ctx    = canvas.getContext('2d');
+
+let W, H, DPR;
+
+function resize() {
+  DPR = window.devicePixelRatio || 1;
+  const wrap = canvas.parentElement;
+  W = wrap.clientWidth;
+  H = wrap.clientHeight;
+  canvas.width  = W * DPR;
+  canvas.height = H * DPR;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.scale(DPR, DPR);
+  initPositions();
+}
+
+window.addEventListener('resize', resize);
+
+// ── Simulation ───────────────────────────────────────────────────────
+const nodes = SESSION_DATA.nodes.map(d => ({ ...d, x:0, y:0, vx:0, vy:0 }));
+const edges = SESSION_DATA.edges;
+const nodeMap = {};
+nodes.forEach(n => { nodeMap[n.id] = n; });
+
+// Build adjacency set for highlighting
+const neighborSet = {};
+nodes.forEach(n => { neighborSet[n.id] = new Set(); });
+edges.forEach(e => {
+  neighborSet[e.source].add(e.target);
+  neighborSet[e.target].add(e.source);
+});
+
+function initPositions() {
+  // Circular/radial layout by type
+  const cx = W / 2, cy = H / 2;
+  const groups = {
+    response: [], tag: [], grant: [], provider: []
+  };
+  nodes.forEach(n => groups[n.type]?.push(n));
+
+  // Radii for each ring — expanded layout
+  const radii = {
+    response: Math.min(W, H) * 0.22,
+    tag:      Math.min(W, H) * 0.35,
+    grant:    Math.min(W, H) * 0.42,
+    provider: Math.min(W, H) * 0.42
+  };
+
+  const placeRing = (group, radius) => {
+    const n = group.length;
+    group.forEach((node, i) => {
+      const angle = (i / n) * Math.PI * 2 - Math.PI / 2 + (Math.random()-.5)*0.3;
+      node.x = cx + Math.cos(angle) * radius + (Math.random()-.5)*10;
+      node.y = cy + Math.sin(angle) * radius + (Math.random()-.5)*10;
+      node.vx = 0; node.vy = 0;
+    });
+  };
+
+  placeRing(groups.response, radii.response);
+  placeRing(groups.tag,      radii.tag);
+  // Split grants and providers on opposite sides for clarity
+  groups.grant.forEach((node, i) => {
+    const n = groups.grant.length;
+    const angle = (i / n) * Math.PI - Math.PI / 2 + (Math.random()-.5)*0.2;
+    node.x = cx + Math.cos(angle) * radii.grant + (Math.random()-.5)*10;
+    node.y = cy + Math.sin(angle) * radii.grant + (Math.random()-.5)*10;
+    node.vx = 0; node.vy = 0;
+  });
+  groups.provider.forEach((node, i) => {
+    const n = groups.provider.length;
+    const angle = Math.PI + (i / n) * Math.PI - Math.PI / 2 + (Math.random()-.5)*0.2;
+    node.x = cx + Math.cos(angle) * radii.provider + (Math.random()-.5)*10;
+    node.y = cy + Math.sin(angle) * radii.provider + (Math.random()-.5)*10;
+    node.vx = 0; node.vy = 0;
+  });
+}
+
+const REPULSION    = 3000;
+const SPRING_K     = 0.04;
+const REST_LEN     = 100;
+const DAMPING      = 0.82;
+const GRAVITY      = 0.0008;
+const BORDER_PAD   = 40;
+
+let alpha = 1.0;
+
+function tick() {
+  if (dragNode) return; // pause sim while dragging
+  if (alpha < 0.001) { alpha = 0; return; }
+
+  // Repulsion
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = i + 1; j < nodes.length; j++) {
+      const a = nodes[i], b = nodes[j];
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const d2 = dx*dx + dy*dy || 1;
+      const d  = Math.sqrt(d2);
+      const f  = (REPULSION / d2) * alpha;
+      const fx = (dx/d)*f, fy = (dy/d)*f;
+      a.vx -= fx; a.vy -= fy;
+      b.vx += fx; b.vy += fy;
+    }
+  }
+
+  // Springs
+  edges.forEach(e => {
+    const a = nodeMap[e.source], b = nodeMap[e.target];
+    if (!a || !b) return;
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const d  = Math.sqrt(dx*dx + dy*dy) || 1;
+    const f  = SPRING_K * (d - REST_LEN) * alpha;
+    const fx = (dx/d)*f, fy = (dy/d)*f;
+    a.vx += fx; a.vy += fy;
+    b.vx -= fx; b.vy -= fy;
+  });
+
+  // Center gravity + boundary
+  nodes.forEach(n => {
+    n.vx += (W/2 - n.x) * GRAVITY;
+    n.vy += (H/2 - n.y) * GRAVITY;
+    n.vx *= DAMPING;
+    n.vy *= DAMPING;
+    n.x  += n.vx;
+    n.y  += n.vy;
+    // Boundary
+    const pad = n.radius + BORDER_PAD;
+    if (n.x < pad)   { n.x = pad;   n.vx *= -0.3; }
+    if (n.x > W-pad) { n.x = W-pad; n.vx *= -0.3; }
+    if (n.y < pad)   { n.y = pad;   n.vy *= -0.3; }
+    if (n.y > H-pad) { n.y = H-pad; n.vy *= -0.3; }
+  });
+
+  alpha *= 0.994;
+}
+
+// ── Theme detection ──────────────────────────────────────────────────
+function isDark() {
+  const th = document.documentElement.dataset.theme;
+  if (th === 'dark')  return true;
+  if (th === 'light') return false;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+
+function theme() {
+  return isDark() ? {
+    bg:       '#090f1c',
+    surface:  '#1a2438',
+    edge:     'rgba(148,163,184,0.14)',
+    edgeHi:   'rgba(148,163,184,0.55)',
+    label:    '#94a3b8',
+    labelHi:  '#e2e8f0',
+    nodeStroke:'rgba(0,0,0,0.4)',
+    glow: true
+  } : {
+    bg:       '#eef2f8',
+    surface:  '#ffffff',
+    edge:     'rgba(30,50,80,0.12)',
+    edgeHi:   'rgba(30,50,80,0.45)',
+    label:    '#64748b',
+    labelHi:  '#0f172a',
+    nodeStroke:'rgba(255,255,255,0.6)',
+    glow: false
+  };
+}
+
+// ── Render ───────────────────────────────────────────────────────────
+let hoveredNode = null;
+let selectedNode = null;
+
+function drawGlow(x, y, r, color) {
+  // Subtle glow for minimalist aesthetic
+  const g = ctx.createRadialGradient(x, y, r*0.5, x, y, r*1.8);
+  g.addColorStop(0, color + '22');
+  g.addColorStop(1, color + '00');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(x, y, r*1.8, 0, Math.PI*2);
+  ctx.fill();
+}
+
+function drawArrow(x1, y1, x2, y2, r2) {
+  const angle = Math.atan2(y2-y1, x2-x1);
+  const ex = x2 - Math.cos(angle)*r2;
+  const ey = y2 - Math.sin(angle)*r2;
+  const aw = 5, al = 8;
+  ctx.beginPath();
+  ctx.moveTo(ex, ey);
+  ctx.lineTo(ex - al*Math.cos(angle) + aw*Math.sin(angle),
+             ey - al*Math.sin(angle) - aw*Math.cos(angle));
+  ctx.lineTo(ex - al*Math.cos(angle) - aw*Math.sin(angle),
+             ey - al*Math.sin(angle) + aw*Math.cos(angle));
+  ctx.closePath();
+  ctx.fill();
+}
+
+function wrapText(text, maxW, lineH) {
+  // Returns array of lines
+  const words = text.split('\n');
+  return words; // we use \n in labels directly
+}
+
+function render() {
+  const T = theme();
+  ctx.clearRect(0, 0, W, H);
+
+  // Background
+  ctx.fillStyle = T.bg;
+  ctx.fillRect(0, 0, W, H);
+
+  const activeId = hoveredNode?.id || selectedNode?.id;
+
+  // ── Edges
+  edges.forEach(e => {
+    const a = nodeMap[e.source], b = nodeMap[e.target];
+    if (!a || !b) return;
+
+    const isActive = activeId &&
+      (a.id === activeId || b.id === activeId ||
+       neighborSet[activeId]?.has(a.id) && neighborSet[activeId]?.has(b.id));
+
+    const dimmed = activeId && !isActive;
+    const alpha  = dimmed ? 0.08 : 1;
+
+    ctx.globalAlpha = alpha;
+
+    const lw = 0.5 + e.weight * 1.8;
+    ctx.lineWidth = lw;
+    ctx.strokeStyle = isActive ? T.edgeHi : T.edge;
+
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.stroke();
+
+    // Arrow tip toward target
+    ctx.fillStyle = isActive ? T.edgeHi : T.edge;
+    drawArrow(a.x, a.y, b.x, b.y, b.radius + 2);
+
+    ctx.globalAlpha = 1;
+  });
+
+  // ── Nodes + Labels
+  nodes.forEach(n => {
+    const isHovered  = hoveredNode === n;
+    const isSelected = selectedNode === n;
+    const isNeighbor = activeId && neighborSet[activeId]?.has(n.id);
+    const isActive   = n.id === activeId || isNeighbor;
+    const dimmed     = activeId && !isActive;
+
+    ctx.globalAlpha = dimmed ? 0.18 : 1;
+
+    const r = n.radius * (isHovered || isSelected ? 1.18 : 1);
+
+    // Glow (dark theme only)
+    if (T.glow && isActive) {
+      drawGlow(n.x, n.y, r, n.color);
+    }
+
+    // Node circle
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, r, 0, Math.PI*2);
+    ctx.fillStyle = n.color;
+    ctx.fill();
+
+    // Stroke ring
+    ctx.lineWidth = isSelected ? 2.5 : 1.5;
+    ctx.strokeStyle = isSelected ? '#ffffff' : T.nodeStroke;
+    ctx.stroke();
+
+    // Score ring for grants/providers
+    if ((n.type === 'grant' || n.type === 'provider') && n.score) {
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, r + 5, -Math.PI/2, -Math.PI/2 + Math.PI*2*n.score);
+      ctx.strokeStyle = n.color + 'aa';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // Label
+    const lines = n.label.split('\n');
+    const labelY = n.y + r + 10;
+    ctx.font = `${isActive ? 500 : 400} 10.5px Inter, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = isActive ? T.labelHi : T.label;
+
+    lines.forEach((line, i) => {
+      ctx.fillText(line, n.x, labelY + i * 13);
+    });
+
+    ctx.globalAlpha = 1;
+  });
+}
+
+// ── Interaction ──────────────────────────────────────────────────────
+let dragNode = null;
+let dragOffX = 0, dragOffY = 0;
+
+function getMousePos(e) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: (e.clientX ?? e.touches?.[0].clientX) - rect.left,
+    y: (e.clientY ?? e.touches?.[0].clientY) - rect.top
+  };
+}
+
+function hitTest(mx, my) {
+  // Reverse order — top node first
+  for (let i = nodes.length - 1; i >= 0; i--) {
+    const n = nodes[i];
+    const d = Math.hypot(mx - n.x, my - n.y);
+    if (d <= n.radius + 4) return n;
+  }
+  return null;
+}
+
+canvas.addEventListener('mousemove', e => {
+  const { x, y } = getMousePos(e);
+  if (dragNode) {
+    dragNode.x = x + dragOffX;
+    dragNode.y = y + dragOffY;
+    dragNode.vx = 0; dragNode.vy = 0;
+    alpha = 0.3;
+    canvas.classList.add('dragging');
+    return;
+  }
+  const hit = hitTest(x, y);
+  hoveredNode = hit;
+  canvas.classList.toggle('hovering', !!hit);
+  canvas.classList.remove('dragging');
+});
+
+canvas.addEventListener('mouseleave', () => {
+  hoveredNode = null;
+  canvas.classList.remove('hovering', 'dragging');
+});
+
+canvas.addEventListener('mousedown', e => {
+  const { x, y } = getMousePos(e);
+  const hit = hitTest(x, y);
+  if (hit) {
+    dragNode = hit;
+    dragOffX = hit.x - x;
+    dragOffY = hit.y - y;
+  }
+});
+
+canvas.addEventListener('mouseup', e => {
+  const { x, y } = getMousePos(e);
+  const wasDragging = dragNode &&
+    (Math.abs(dragNode.x - (x + dragOffX)) > 4 ||
+     Math.abs(dragNode.y - (y + dragOffY)) > 4);
+
+  if (dragNode && !wasDragging) {
+    // It's a click
+    openPanel(dragNode);
+  }
+  dragNode = null;
+  canvas.classList.remove('dragging');
+});
+
+canvas.addEventListener('click', e => {
+  const { x, y } = getMousePos(e);
+  const hit = hitTest(x, y);
+  if (!hit) {
+    closePanel();
+  }
+});
+
+// ── Panel ─────────────────────────────────────────────────────────────
+const panel    = document.getElementById('panel');
+const closeBtn = document.getElementById('close-btn');
+const panelBadge = document.getElementById('panel-badge');
+const panelTitle = document.getElementById('panel-title');
+const panelBody  = document.getElementById('panel-body');
+
+const TYPE_LABELS = {
+  response: 'Response',
+  tag:      'Tag',
+  grant:    'Grant',
+  provider: 'Provider',
+  resource: 'Resource'
+};
+
+const DIM_COLORS = {
+  Operations: '#3b82f6',
+  Digital:    '#8b5cf6',
+  Market:     '#f59e0b',
+  Profile:    '#64748b'
+};
+
+function openPanel(node) {
+  selectedNode = node;
+
+  // Badge
+  panelBadge.textContent = TYPE_LABELS[node.type] || node.type;
+  panelBadge.style.background = node.color + '22';
+  panelBadge.style.color = node.color;
+
+  panelTitle.textContent = node.label.replace(/\n/g, ' ');
+
+  // Body
+  let html = '';
+
+  if (node.type === 'response') {
+    const dc = DIM_COLORS[node.dimension] || '#64748b';
+    html += `
+      <div>
+        <div class="panel-section-label">Dimension</div>
+        <span class="dim-badge" style="background:${dc}22;color:${dc}">
+          ${node.dimension}
+        </span>
+      </div>
+      <div>
+        <div class="panel-section-label">Answer detail</div>
+        <div class="panel-value">${node.detail}</div>
+      </div>
+    `;
+    // Show connected tags
+    const connectedTags = edges
+      .filter(e => e.source === node.id)
+      .map(e => nodeMap[e.target]?.label?.replace(/\n/g,' '))
+      .filter(Boolean);
+    if (connectedTags.length) {
+      html += `
+        <div>
+          <div class="panel-section-label">Tags activated</div>
+          <div class="tag-list">
+            ${connectedTags.map(t => `<span class="tag-chip">${t}</span>`).join('')}
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  if (node.type === 'tag') {
+    html += `
+      <div>
+        <div class="panel-section-label">Description</div>
+        <div class="panel-value">${node.detail}</div>
+      </div>
+    `;
+    const sources = edges
+      .filter(e => e.target === node.id)
+      .map(e => nodeMap[e.source]?.label?.replace(/\n/g,' '))
+      .filter(Boolean);
+    const targets = edges
+      .filter(e => e.source === node.id)
+      .map(e => nodeMap[e.target]?.label?.replace(/\n/g,' '))
+      .filter(Boolean);
+    if (sources.length) {
+      html += `
+        <div>
+          <div class="panel-section-label">Activated by</div>
+          <div class="tag-list">${sources.map(s => `<span class="tag-chip">${s}</span>`).join('')}</div>
+        </div>
+      `;
+    }
+    if (targets.length) {
+      html += `
+        <div>
+          <div class="panel-section-label">Matched to</div>
+          <div class="tag-list">${targets.map(t => `<span class="tag-chip">${t}</span>`).join('')}</div>
+        </div>
+      `;
+    }
+  }
+
+  if (node.type === 'grant' || node.type === 'provider') {
+    const pct = Math.round(node.score * 100);
+    html += `
+      <div>
+        <div class="panel-section-label">Match score</div>
+        <div class="score-bar-wrap">
+          <div class="score-bar-bg">
+            <div class="score-bar-fill"
+              style="width:${pct}%;background:${node.color}"></div>
+          </div>
+          <span class="score-val">${pct}%</span>
+        </div>
+      </div>
+    `;
+    if (node.matchedTags?.length) {
+      html += `
+        <div>
+          <div class="panel-section-label">Matched tags</div>
+          <div class="tag-list">
+            ${node.matchedTags.map(t => `<span class="tag-chip">${t}</span>`).join('')}
+          </div>
+        </div>
+      `;
+    }
+    html += `
+      <div>
+        <div class="panel-section-label">Reasoning path</div>
+        <div class="reasoning-text">${node.reasoning}</div>
+      </div>
+    `;
+  }
+
+  panelBody.innerHTML = html;
+  panel.classList.add('open');
+}
+
+function closePanel() {
+  panel.classList.remove('open');
+  selectedNode = null;
+}
+
+closeBtn.addEventListener('click', closePanel);
+
+// ── Loop ──────────────────────────────────────────────────────────────
+function loop() {
+  tick();
+  render();
+  requestAnimationFrame(loop);
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────
+resize();
+loop();
+</script>

@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Provider Card — Redesign basado en diseño real de Antigravity</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #f0f2f5;
+    padding: 36px 24px;
+    color: #1a2332;
+  }
+  h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; color: #1a2332; }
+  .subtitle { font-size: 13px; color: #64748b; margin-bottom: 36px; line-height: 1.5; }
+  .section-label {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; color: #94a3b8; margin-bottom: 12px;
+  }
+  .gap { margin-bottom: 40px; }
+
+  /* ─── BASE CARD (replica del diseño real de Antigravity) ─── */
+  .card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: row;
+    overflow: hidden;
+    max-width: 840px;
+  }
+
+  .card-left {
+    flex: 1;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .provider-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a2332;
+  }
+
+  /* Badge actual: gris neutro (cómo lo tiene Antigravity) */
+  .badge-current {
+    display: inline-block;
+    font-size: 11px;
+    color: #374151;
+    background: transparent;
+    border: 1px solid #d1d5db;
+    border-radius: 20px;
+    padding: 2px 10px;
+    width: fit-content;
+  }
+
+  .summary {
+    font-size: 13.5px;
+    color: #4b5563;
+    line-height: 1.6;
+  }
+
+  .view-more {
+    font-size: 12.5px;
+    color: #1e3a5f;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    width: fit-content;
+  }
+
+  /* Panel derecho */
+  .card-right {
+    width: 220px;
+    flex-shrink: 0;
+    border-left: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 16px;
+    gap: 12px;
+  }
+
+  .building-icon {
+    font-size: 36px;
+    color: #94a3b8;
+    line-height: 1;
+  }
+
+  .dpird-badge-current {
+    background: #1e3a5f;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 5px 12px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .location-row {
+    font-size: 12.5px;
+    color: #475569;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    width: 100%;
+  }
+
+  .btn-visit {
+    background: #1e3a5f;
+    color: white;
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 9px 16px;
+    border-radius: 7px;
+    width: 100%;
+    text-align: center;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+  }
+
+  .btn-contact-current {
+    background: transparent;
+    color: #1e3a5f;
+    font-size: 12px;
+    font-weight: 600;
+    width: 100%;
+    text-align: center;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  /* ─── MEJORAS ─── */
+
+  /* Colores por service_type */
+  .badge-implementation { background: #ccfbf1; color: #0f766e; border: none; }
+  .badge-consulting      { background: #dbeafe; color: #1d4ed8; border: none; }
+  .badge-marketing       { background: #fce7f3; color: #be185d; border: none; }
+  .badge-logistics       { background: #fef3c7; color: #b45309; border: none; }
+  .badge-training        { background: #ede9fe; color: #6d28d9; border: none; }
+  .badge-audit           { background: #ffedd5; color: #c2410c; border: none; }
+  .badge-facilities      { background: #dcfce7; color: #15803d; border: none; }
+
+  .badge-base {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 20px;
+    padding: 3px 10px;
+    width: fit-content;
+  }
+
+  /* Accent bar lateral */
+  .accent-bar { width: 5px; flex-shrink: 0; }
+  .accent-implementation { background: #14b8a6; }
+  .accent-consulting     { background: #3b82f6; }
+  .accent-marketing      { background: #ec4899; }
+  .accent-logistics      { background: #f59e0b; }
+
+  /* Icono con color de fondo */
+  .icon-box {
+    width: 56px; height: 56px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px;
+  }
+  .icon-teal   { background: #ccfbf1; color: #0f766e; }
+  .icon-blue   { background: #dbeafe; color: #1d4ed8; }
+  .icon-pink   { background: #fce7f3; color: #be185d; }
+  .icon-amber  { background: #fef3c7; color: #b45309; }
+
+  /* DPIRD badge rediseñado */
+  .dpird-badge-new {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1.5px solid #bfdbfe;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 5px 12px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Status pill */
+  .online-pill {
+    background: #dcfce7;
+    color: #15803d;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    width: 100%;
+    justify-content: center;
+  }
+  .online-dot { width: 6px; height: 6px; border-radius: 50%; background: #16a34a; }
+
+  /* Botón gold */
+  .btn-gold {
+    background: #f59e0b;
+    color: #1a1a1a;
+    font-size: 12.5px;
+    font-weight: 700;
+    padding: 9px 16px;
+    border-radius: 7px;
+    width: 100%;
+    text-align: center;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+  }
+
+  /* Panel derecho con tinte sutil */
+  .card-right-tinted-teal  { background: #f0fdfa; }
+  .card-right-tinted-blue  { background: #eff6ff; }
+  .card-right-tinted-pink  { background: #fdf4ff; }
+  .card-right-tinted-amber { background: #fffbeb; }
+
+  /* ─── COMPARACIÓN ─── */
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+    max-width: 1100px;
+  }
+  .col-label {
+    font-size: 12px; font-weight: 700; padding: 5px 12px;
+    border-radius: 6px; margin-bottom: 8px; display: inline-block;
+  }
+  .label-actual  { background: #f1f5f9; color: #64748b; }
+  .label-mejorado { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+
+  .note-box {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+    padding: 14px 18px;
+    font-size: 13px;
+    color: #78350f;
+    line-height: 1.7;
+    max-width: 840px;
+    margin-top: 8px;
+  }
+  .note-box ul { padding-left: 18px; margin-top: 6px; }
+  .note-box li { margin-bottom: 4px; }
+
+  .divider {
+    border: none;
+    border-top: 1px solid #e2e8f0;
+    margin: 40px 0;
+    max-width: 840px;
+  }
+
+  /* Paleta de colores */
+  .palette { display: flex; flex-wrap: wrap; gap: 8px; max-width: 840px; }
+  .swatch {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; font-weight: 600;
+    padding: 6px 14px; border-radius: 8px;
+  }
+  .swatch-dot { width: 10px; height: 10px; border-radius: 50%; }
+</style>
+</head>
+<body>
+
+<h1>Provider Card — Rediseño (basado en diseño real de Antigravity)</h1>
+<p class="subtitle">
+  El diseño actual (izquierda) es correcto en estructura pero totalmente monocromático.<br>
+  Las propuestas (derecha) añaden color sin romper el layout aprobado en CC-003.
+</p>
+
+<!-- ══════════════════════════════════════════
+     COMPARACIÓN: ACTUAL vs PROPUESTA A
+     (Accent bar + badge de color + icon tintado + btn gold)
+     ══════════════════════════════════════════ -->
+<div class="gap">
+  <div class="section-label">Comparación — Tarjeta actual vs Propuesta</div>
+
+  <div class="compare">
+
+    <!-- ACTUAL -->
+    <div>
+      <span class="col-label label-actual">Actual (Antigravity)</span>
+      <div class="card">
+        <div class="card-left">
+          <div class="provider-name">AccuWeigh</div>
+          <span class="badge-current">Implementation</span>
+          <p class="summary">WA's leading supplier of weighing, packaging and food inspection equipment for the food industry.</p>
+          <span class="view-more">View more ∨</span>
+        </div>
+        <div class="card-right">
+          <div class="building-icon">🏢</div>
+          <div class="dpird-badge-current">⚙ DPIRD Approved</div>
+          <div class="location-row">📍 Metro WA</div>
+          <div class="location-row">🌐 Available online</div>
+          <div class="btn-visit">Visit Website ↗</div>
+          <div class="btn-contact-current">Contact 📞</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROPUESTA A: Accent bar + badge de color + icon tintado + gold button -->
+    <div>
+      <span class="col-label label-mejorado">✦ Propuesta A — Accent bar + colores</span>
+      <div class="card">
+        <!-- Accent bar lateral del color del servicio -->
+        <div class="accent-bar accent-implementation"></div>
+        <div class="card-left">
+          <div class="provider-name">AccuWeigh</div>
+          <!-- Badge con color de servicio -->
+          <span class="badge-base badge-implementation">Implementation</span>
+          <p class="summary">WA's leading supplier of weighing, packaging and food inspection equipment for the food industry.</p>
+          <span class="view-more">View more ∨</span>
+        </div>
+        <div class="card-right card-right-tinted-teal">
+          <!-- Ícono con fondo tintado del color del servicio -->
+          <div class="icon-box icon-teal">🏭</div>
+          <!-- DPIRD badge más sutil (no tan dominante) -->
+          <div class="dpird-badge-new">✓ DPIRD Approved</div>
+          <div class="location-row">📍 Metro WA</div>
+          <!-- Status pill estilo grants "Status: Open" -->
+          <div class="online-pill">
+            <span class="online-dot"></span> Available online
+          </div>
+          <!-- Botón dorado = mismo lenguaje visual que grants -->
+          <div class="btn-gold">Visit Website ↗</div>
+          <div class="btn-contact-current">Contact 📞</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     MÚLTIPLES CARDS PARA VER LA PALETA EN ACCIÓN
+     ══════════════════════════════════════════ -->
+<hr class="divider">
+<div class="section-label">Propuesta A aplicada a distintos service types</div>
+<div style="display:flex; flex-direction:column; gap:14px; max-width:840px;">
+
+  <!-- Marketing (rosa) -->
+  <div class="card">
+    <div class="accent-bar accent-marketing"></div>
+    <div class="card-left">
+      <div class="provider-name">Aeozo Australia Pty Ltd</div>
+      <span class="badge-base badge-marketing">Marketing &amp; Design</span>
+      <p class="summary">Branding and design studio specialising in helping food and beverage businesses grow through compelling visual identities and packaging design.</p>
+      <span class="view-more">View more ∨</span>
+    </div>
+    <div class="card-right card-right-tinted-pink">
+      <div class="icon-box icon-pink">🎨</div>
+      <div class="dpird-badge-new">✓ DPIRD Approved</div>
+      <div class="location-row">📍 Metro WA</div>
+      <div class="online-pill"><span class="online-dot"></span> Available online</div>
+      <div class="btn-gold">Visit Website ↗</div>
+      <div class="btn-contact-current">Contact 📞</div>
+    </div>
+  </div>
+
+  <!-- Consulting (azul) -->
+  <div class="card">
+    <div class="accent-bar accent-consulting"></div>
+    <div class="card-left">
+      <div class="provider-name">FoodChain Advisory WA</div>
+      <span class="badge-base badge-consulting">Consulting</span>
+      <p class="summary">Strategic advisory for food and beverage exporters navigating compliance, market access, and supply chain resilience in the Asia-Pacific region.</p>
+      <span class="view-more">View more ∨</span>
+    </div>
+    <div class="card-right card-right-tinted-blue">
+      <div class="icon-box icon-blue">📋</div>
+      <div class="dpird-badge-new">✓ DPIRD Approved</div>
+      <div class="location-row">📍 Regional WA</div>
+      <div class="online-pill"><span class="online-dot"></span> Available online</div>
+      <div class="btn-gold">Visit Website ↗</div>
+      <div class="btn-contact-current">Contact 📞</div>
+    </div>
+  </div>
+
+  <!-- Logistics (ámbar) -->
+  <div class="card">
+    <div class="accent-bar accent-logistics"></div>
+    <div class="card-left">
+      <div class="provider-name">CoolFreight Logistics</div>
+      <span class="badge-base badge-logistics">Logistics</span>
+      <p class="summary">Temperature-controlled freight and cold storage solutions for perishable food producers targeting domestic and export markets from Western Australia.</p>
+      <span class="view-more">View more ∨</span>
+    </div>
+    <div class="card-right card-right-tinted-amber">
+      <div class="icon-box icon-amber">🚚</div>
+      <!-- Sin DPIRD badge para mostrar variante -->
+      <div style="height:32px;"></div>
+      <div class="location-row">📍 Perth Metro</div>
+      <div style="background:#fef3c7; color:#b45309; font-size:11px; font-weight:600; padding:4px 10px; border-radius:20px; width:100%; text-align:center; display:flex; align-items:center; justify-content:center; gap:5px;">
+        <span style="width:6px;height:6px;border-radius:50%;background:#d97706;"></span> In-person only
+      </div>
+      <div class="btn-gold">Visit Website ↗</div>
+      <div class="btn-contact-current">Contact 📞</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════
+     PALETA DE COLORES
+     ══════════════════════════════════════════ -->
+<hr class="divider">
+<div class="section-label">Paleta de colores propuesta por service_type</div>
+<div class="palette">
+  <div class="swatch badge-implementation" style="padding:7px 14px; border-radius:8px;"><span class="swatch-dot" style="background:#14b8a6;"></span>Implementation</div>
+  <div class="swatch badge-consulting"     style="padding:7px 14px; border-radius:8px;"><span class="swatch-dot" style="background:#3b82f6;"></span>Consulting</div>
+  <div class="swatch badge-marketing"      style="padding:7px 14px; border-radius:8px;"><span class="swatch-dot" style="background:#ec4899;"></span>Marketing &amp; Design</div>
+  <div class="swatch badge-logistics"      style="padding:7px 14px; border-radius:8px;"><span class="swatch-dot" style="background:#f59e0b;"></span>Logistics</div>
+  <div class="swatch badge-training"       style="padding:7px 14px; border-radius:8px;"><span class="swatch-dot" style="background:#7c3aed;"></span>Training</div>
+  <div class="swatch badge-audit"          style="padding:7px 14px; border-radius:8px;"><span class="swatch-dot" style="background:#f97316;"></span>Audit &amp; Review</div>
+  <div class="swatch badge-facilities"     style="padding:7px 14px; border-radius:8px;"><span class="swatch-dot" style="background:#22c55e;"></span>Facilities</div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     NOTAS DE IMPLEMENTACIÓN
+     ══════════════════════════════════════════ -->
+<hr class="divider">
+<div class="note-box">
+  <strong>¿Qué cambia exactamente? (para Antigravity)</strong>
+  <ul>
+    <li><strong>Accent bar:</strong> <code>&lt;div className="w-1.5 flex-shrink-0 bg-teal-400"&gt;&lt;/div&gt;</code> — un div de 6px antes del <code>card-left</code>. El color se asigna dinámicamente con <code>SERVICE_COLORS[provider.service_types[0]]</code>.</li>
+    <li><strong>Badge:</strong> Cambiar la clase del badge de <code>border border-gray-300 text-gray-700</code> a un mapa de colores por tipo. Ejemplo: <code>Implementation → bg-teal-100 text-teal-700</code>.</li>
+    <li><strong>Icono box:</strong> El ícono de edificio pasa de texto gris a un <code>div</code> con <code>bg-teal-100 rounded-xl p-3</code> y el icono Material en el color del tipo.</li>
+    <li><strong>Botón Visit Website:</strong> Cambiar de <code>bg-[#1e3a5f] text-white</code> → <code>bg-amber-400 text-gray-900 font-bold</code>. Mismo lenguaje visual que el botón "Check Details" de los grants cards.</li>
+    <li><strong>Available online pill:</strong> Pasar de <code>🌐 Available online</code> (texto plano) a un pill con fondo verde: <code>bg-green-100 text-green-700 rounded-full px-3 py-1</code> con punto verde animado.</li>
+    <li><strong>Panel derecho:</strong> Fondo <code>bg-teal-50</code> (o el equivalente del color del tipo) en lugar de <code>bg-white</code>. Solo un cambio de <code>className</code>.</li>
+  </ul>
+</div>
+
+</body>
+</html>

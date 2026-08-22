@@ -1,0 +1,643 @@
+<title>DPIRD Knowledge Graph</title>
+<style>
+  /* ── tokens ── */
+  :root {
+    --bg:    #0f1117;
+    --surf:  #181c27;
+    --surf2: #1e2436;
+    --bord:  #2a3050;
+    --txt:   #e8eaf2;
+    --txt2:  #8892b0;
+    --txt3:  #4a5578;
+    --acc:   #7c6ff7;
+    --grn:   #10b981;
+    --ylw:   #f59e0b;
+    --red:   #ef4444;
+    --sky:   #38bdf8;
+    --vio:   #a78bfa;
+    --font: 'Inter', system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg:    #f4f6fb;
+      --surf:  #ffffff;
+      --surf2: #eef1f8;
+      --bord:  #d1d9f0;
+      --txt:   #1a1f36;
+      --txt2:  #4a5578;
+      --txt3:  #8892b0;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg:#f4f6fb; --surf:#ffffff; --surf2:#eef1f8;
+    --bord:#d1d9f0; --txt:#1a1f36; --txt2:#4a5578; --txt3:#8892b0;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--txt);
+    font-family: var(--font);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    background: var(--surf);
+    border-bottom: 1px solid var(--bord);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .hdr-brand { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--acc); }
+  .hdr-divider { width: 1px; height: 28px; background: var(--bord); }
+  .hdr-session h1 { font-size: 15px; font-weight: 600; color: var(--txt); line-height: 1.3; }
+  .hdr-session p  { font-size: 11px; color: var(--txt2); margin-top: 2px; }
+  .hdr-badges { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; }
+  .badge { padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 600; letter-spacing: .05em; border: 1px solid; }
+  .badge-dml    { color: var(--sky); border-color: var(--sky); background: color-mix(in srgb, var(--sky) 12%, transparent); }
+  .badge-sector { color: var(--acc); border-color: var(--acc); background: color-mix(in srgb, var(--acc) 12%, transparent); }
+  .badge-score  { color: var(--ylw); border-color: var(--ylw); background: color-mix(in srgb, var(--ylw) 12%, transparent); }
+
+  .workspace { flex: 1; display: flex; min-height: 0; }
+  .canvas-wrap { flex: 1; position: relative; min-width: 0; overflow: hidden; }
+  canvas { display: block; width: 100%; height: 100%; }
+
+  /* gauge */
+  .gauge-overlay {
+    position: absolute; top: 18px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center;
+    pointer-events: none; gap: 4px;
+  }
+  .gauge-ring { width: 72px; height: 72px; position: relative; display: flex; align-items: center; justify-content: center; }
+  .gauge-ring svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+  .gauge-ring svg circle { fill: none; stroke-width: 5; }
+  .g-track { stroke: var(--bord); }
+  .g-fill  { stroke: var(--acc); stroke-linecap: round; transition: stroke-dashoffset 1.6s cubic-bezier(.4,0,.2,1); }
+  .gauge-pct { font-size: 18px; font-weight: 700; color: var(--txt); position: relative; z-index: 1; }
+  .gauge-label { font-size: 10px; color: var(--txt2); text-align: center; line-height: 1.4; }
+
+  /* area scores */
+  .area-scores {
+    position: absolute; bottom: 18px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; gap: 12px;
+    background: var(--surf); border: 1px solid var(--bord);
+    border-radius: 10px; padding: 10px 16px;
+    pointer-events: none; white-space: nowrap;
+  }
+  .area-pill { display: flex; align-items: center; gap: 6px; font-size: 11px; }
+  .area-pill .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .area-pill .lbl { color: var(--txt2); }
+  .area-pill .val { font-weight: 700; color: var(--txt); }
+
+  /* panel */
+  .panel {
+    width: 300px; flex-shrink: 0;
+    background: var(--surf); border-left: 1px solid var(--bord);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .panel-head {
+    padding: 14px 16px 10px; border-bottom: 1px solid var(--bord);
+    font-size: 11px; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--txt2);
+  }
+  .panel-scroll {
+    flex: 1; overflow-y: auto; padding: 12px 14px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .panel-scroll::-webkit-scrollbar { width: 4px; }
+  .panel-scroll::-webkit-scrollbar-thumb { background: var(--bord); border-radius: 4px; }
+
+  .section-label { font-size: 9px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--txt3); margin-bottom: 6px; }
+
+  .result-card {
+    background: var(--surf2); border: 1px solid var(--bord);
+    border-radius: 8px; padding: 10px 12px;
+    cursor: pointer; transition: border-color .15s; margin-bottom: 5px;
+  }
+  .result-card:hover, .result-card.active { border-color: var(--acc); }
+  .result-card.active { background: color-mix(in srgb, var(--acc) 8%, var(--surf2)); }
+
+  .rc-top { display: flex; align-items: flex-start; gap: 8px; }
+  .rc-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+  .rc-name { font-size: 12px; font-weight: 600; color: var(--txt); line-height: 1.4; }
+  .rc-meta { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
+  .rc-tag { font-size: 9px; font-weight: 600; letter-spacing: .04em; padding: 2px 7px; border-radius: 10px; border: 1px solid; text-transform: uppercase; }
+  .rc-match { font-size: 11px; font-weight: 700; margin-left: auto; white-space: nowrap; flex-shrink: 0; }
+
+  .detail-view { display: none; }
+  .detail-view.active { display: flex; flex-direction: column; gap: 0; }
+  .dv-back { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--acc); cursor: pointer; background: none; border: none; padding: 0; font-family: inherit; }
+  .dv-back:hover { opacity: .75; }
+  .dv-title    { font-size: 14px; font-weight: 700; color: var(--txt); line-height: 1.4; }
+  .dv-subtitle { font-size: 11px; color: var(--txt2); margin-top: 2px; }
+  .dv-divider  { height: 1px; background: var(--bord); margin: 8px 0; }
+  .dv-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 5px; }
+  .dv-key { font-size: 10px; color: var(--txt2); flex-shrink: 0; }
+  .dv-val { font-size: 11px; font-weight: 600; color: var(--txt); text-align: right; }
+  .dv-bar-wrap { margin-top: 6px; }
+  .dv-bar-lbl { display: flex; justify-content: space-between; font-size: 10px; color: var(--txt2); margin-bottom: 3px; }
+  .dv-bar-track { height: 5px; border-radius: 3px; background: var(--bord); overflow: hidden; }
+  .dv-bar-fill { height: 100%; border-radius: 3px; }
+  .area-weight-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; margin-top: 4px; }
+  .aw-cell { background: var(--surf); border: 1px solid var(--bord); border-radius: 6px; padding: 6px 4px; text-align: center; }
+  .aw-lbl { font-size: 9px; color: var(--txt2); margin-bottom: 2px; }
+  .aw-val { font-size: 13px; font-weight: 700; }
+
+  .gap-card { background: color-mix(in srgb, var(--red) 10%, var(--surf2)); border: 1px solid color-mix(in srgb, var(--red) 30%, var(--bord)); border-radius: 8px; padding: 10px 12px; margin-bottom: 5px; }
+  .gap-title { font-size: 11px; font-weight: 600; color: var(--red); margin-bottom: 3px; }
+  .gap-body  { font-size: 10px; color: var(--txt2); line-height: 1.5; }
+
+  .legend { padding: 10px 14px; border-top: 1px solid var(--bord); display: flex; flex-wrap: wrap; gap: 8px; }
+  .leg-item { display: flex; align-items: center; gap: 5px; }
+  .leg-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .leg-dot.dashed { background: transparent; border: 2px dashed; border-radius: 50%; }
+  .leg-label { font-size: 9px; color: var(--txt2); }
+</style>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+
+<header>
+  <div class="hdr-brand">DPIRD Advisory</div>
+  <div class="hdr-divider"></div>
+  <div class="hdr-session">
+    <h1>Greenfields Organics WA</h1>
+    <p>Horticulture · South West WA</p>
+  </div>
+  <div class="hdr-badges">
+    <span class="badge badge-dml">DML: Established</span>
+    <span class="badge badge-sector">Horticulture</span>
+    <span class="badge badge-score">Score: 53%</span>
+  </div>
+</header>
+
+<div class="workspace">
+  <div class="canvas-wrap">
+    <canvas id="kg"></canvas>
+
+    <div class="gauge-overlay">
+      <div class="gauge-ring">
+        <svg viewBox="0 0 72 72">
+          <circle class="g-track" cx="36" cy="36" r="30"/>
+          <circle class="g-fill" cx="36" cy="36" r="30" id="gfill"
+            stroke-dasharray="188.5" stroke-dashoffset="188.5"/>
+        </svg>
+        <span class="gauge-pct" id="gpct">0%</span>
+      </div>
+      <div class="gauge-label">7 results matched<br>5 grants · 2 resources</div>
+    </div>
+
+    <div class="area-scores">
+      <div class="area-pill"><div class="dot" style="background:#f59e0b"></div><span class="lbl">Operations</span><span class="val">62%</span></div>
+      <div class="area-pill"><div class="dot" style="background:#38bdf8"></div><span class="lbl">Digital</span><span class="val">48%</span></div>
+      <div class="area-pill"><div class="dot" style="background:#a78bfa"></div><span class="lbl">Market</span><span class="val">55%</span></div>
+    </div>
+  </div>
+
+  <aside class="panel">
+    <div id="listView">
+      <div class="panel-head">Matched Results</div>
+      <div class="panel-scroll">
+
+        <div>
+          <div class="section-label">Grants · 5 matched</div>
+          <div class="result-card" data-id="g1" onclick="showDetail('g1')">
+            <div class="rc-top">
+              <div class="rc-dot" style="background:#f59e0b"></div>
+              <div><div class="rc-name">Supply Chain Capacity Program</div>
+              <div class="rc-meta">
+                <span class="rc-tag" style="color:#f59e0b;border-color:#f59e0b">Operations</span>
+                <span class="rc-tag" style="color:#8892b0;border-color:#2a3050">DPIRD</span>
+              </div></div>
+              <span class="rc-match" style="color:#10b981">82%</span>
+            </div>
+          </div>
+          <div class="result-card" data-id="g2" onclick="showDetail('g2')">
+            <div class="rc-top">
+              <div class="rc-dot" style="background:#38bdf8"></div>
+              <div><div class="rc-name">Digital Manufacturing on a Shoestring</div>
+              <div class="rc-meta">
+                <span class="rc-tag" style="color:#38bdf8;border-color:#38bdf8">Digital</span>
+                <span class="rc-tag" style="color:#8892b0;border-color:#2a3050">DPIRD</span>
+              </div></div>
+              <span class="rc-match" style="color:#10b981">78%</span>
+            </div>
+          </div>
+          <div class="result-card" data-id="g4" onclick="showDetail('g4')">
+            <div class="rc-top">
+              <div class="rc-dot" style="background:#a78bfa"></div>
+              <div><div class="rc-name">Australian Trusted Trader</div>
+              <div class="rc-meta">
+                <span class="rc-tag" style="color:#a78bfa;border-color:#a78bfa">Market</span>
+                <span class="rc-tag" style="color:#8892b0;border-color:#2a3050">ABF</span>
+              </div></div>
+              <span class="rc-match" style="color:#10b981">70%</span>
+            </div>
+          </div>
+          <div class="result-card" data-id="g3" onclick="showDetail('g3')">
+            <div class="rc-top">
+              <div class="rc-dot" style="background:#38bdf8"></div>
+              <div><div class="rc-name">ASBAS Digital Solutions Round 3</div>
+              <div class="rc-meta">
+                <span class="rc-tag" style="color:#38bdf8;border-color:#38bdf8">Digital</span>
+                <span class="rc-tag" style="color:#8892b0;border-color:#2a3050">DISR</span>
+              </div></div>
+              <span class="rc-match" style="color:#f59e0b">68%</span>
+            </div>
+          </div>
+          <div class="result-card" data-id="g5" onclick="showDetail('g5')">
+            <div class="rc-top">
+              <div class="rc-dot" style="background:#f59e0b"></div>
+              <div><div class="rc-name">Value Add Investment Grants</div>
+              <div class="rc-meta">
+                <span class="rc-tag" style="color:#f59e0b;border-color:#f59e0b">Operations</span>
+                <span class="rc-tag" style="color:#8892b0;border-color:#2a3050">DPIRD</span>
+              </div></div>
+              <span class="rc-match" style="color:#f59e0b">58%</span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="section-label">Resources · 2 matched</div>
+          <div class="result-card" data-id="r1" onclick="showDetail('r1')">
+            <div class="rc-top">
+              <div class="rc-dot" style="background:#f59e0b;outline:2px dashed #f59e0b;outline-offset:2px;border-radius:50%"></div>
+              <div><div class="rc-name">Digital Tools for Farm Management</div>
+              <div class="rc-meta">
+                <span class="rc-tag" style="color:#38bdf8;border-color:#38bdf8">Digital</span>
+                <span class="rc-tag" style="color:#8892b0;border-color:#2a3050">Guide</span>
+              </div></div>
+              <span class="rc-match" style="color:#10b981">88%</span>
+            </div>
+          </div>
+          <div class="result-card" data-id="r2" onclick="showDetail('r2')">
+            <div class="rc-top">
+              <div class="rc-dot" style="background:#f59e0b;outline:2px dashed #f59e0b;outline-offset:2px;border-radius:50%"></div>
+              <div><div class="rc-name">WA Grain Export Research Report</div>
+              <div class="rc-meta">
+                <span class="rc-tag" style="color:#a78bfa;border-color:#a78bfa">Market</span>
+                <span class="rc-tag" style="color:#8892b0;border-color:#2a3050">Report</span>
+              </div></div>
+              <span class="rc-match" style="color:#f59e0b">74%</span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="section-label">Diagnostic Gaps</div>
+          <div class="gap-card">
+            <div class="gap-title">Digital Adoption Below Threshold</div>
+            <div class="gap-body">Digital score 48% is below the 60% threshold for premium digital grants. Completing digital capability questions may unlock additional programs.</div>
+          </div>
+          <div class="gap-card">
+            <div class="gap-title">Market Access Potential Untapped</div>
+            <div class="gap-body">Export and certification tags detected but market score 55% suggests incomplete international trade readiness profiling.</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div id="detailView" class="detail-view">
+      <div class="panel-head"><button class="dv-back" onclick="showList()">← Back to results</button></div>
+      <div class="panel-scroll" id="detailContent"></div>
+    </div>
+
+    <div class="legend">
+      <div class="leg-item"><div class="leg-dot" style="background:#7c6ff7"></div><span class="leg-label">Business</span></div>
+      <div class="leg-item"><div class="leg-dot" style="background:#f59e0b"></div><span class="leg-label">Operations</span></div>
+      <div class="leg-item"><div class="leg-dot" style="background:#38bdf8"></div><span class="leg-label">Digital</span></div>
+      <div class="leg-item"><div class="leg-dot" style="background:#a78bfa"></div><span class="leg-label">Market</span></div>
+      <div class="leg-item"><div class="leg-dot" style="background:#10b981"></div><span class="leg-label">Grant</span></div>
+      <div class="leg-item"><div class="leg-dot dashed" style="border-color:#f59e0b"></div><span class="leg-label">Resource</span></div>
+      <div class="leg-item"><div class="leg-dot" style="background:#64748b"></div><span class="leg-label">Provider</span></div>
+    </div>
+  </aside>
+</div>
+
+<script>
+// ── DATA ─────────────────────────────────────────────────────────
+const AREAS = [
+  { id:'a1', name:'Operations', score:62, color:'#f59e0b', angle:-100*Math.PI/180 },
+  { id:'a2', name:'Digital',    score:48, color:'#38bdf8', angle:  30*Math.PI/180 },
+  { id:'a3', name:'Market',     score:55, color:'#a78bfa', angle: 150*Math.PI/180 }
+];
+
+const GRANTS = [
+  { id:'g1', short:'Supply Chain Capacity', area:'a1', prov:'p1', match:82, angle:-120*Math.PI/180 },
+  { id:'g5', short:'Value Add Investment',  area:'a1', prov:'p1', match:58, angle: -55*Math.PI/180 },
+  { id:'g2', short:'Digital Manufacturing', area:'a2', prov:'p1', match:78, angle:  10*Math.PI/180 },
+  { id:'g3', short:'ASBAS Digital Solutions',area:'a2',prov:'p2', match:68, angle:  60*Math.PI/180 },
+  { id:'g4', short:'Trusted Trader',         area:'a3',prov:'p4', match:70, angle: 148*Math.PI/180 }
+];
+
+const RESOURCES = [
+  { id:'r1', short:'Digital Tools Guide',    area:'a2', match:88, angle: 100*Math.PI/180 },
+  { id:'r2', short:'WA Grain Export Report', area:'a3', match:74, angle: 200*Math.PI/180 }
+];
+
+const PROVS = [
+  { id:'p1', abbr:'FTW',  name:'FoodTech WA',        grants:['g1','g2','g5'] },
+  { id:'p2', abbr:'SBDC', name:'SBDC WA',             grants:['g2','g3'] },
+  { id:'p3', abbr:'ADPT', name:'Adapt',               grants:['g1'] },
+  { id:'p4', abbr:'AEZO', name:'Aeozo Australia',     grants:['g4'] }
+];
+
+
+const DETAILS = {
+  g1:{ title:'Supply Chain Capacity Program', sub:'DPIRD Western Australia', type:'grant',
+       rows:[['Area','Operations'],['Match','82%'],['Status','Closed — 2024'],['Provider','FoodTech WA']],
+       weights:{ops:0.45,dig:0.25,mkt:0.30} },
+  g5:{ title:'Value Add Investment Grants — Capital Investment Stream', sub:'DPIRD Western Australia', type:'grant',
+       rows:[['Area','Operations'],['Match','58%'],['Status','Closed — 2024'],['Provider','FoodTech WA']],
+       weights:{ops:0.40,dig:0.30,mkt:0.30} },
+  g2:{ title:'Digital Manufacturing on a Shoestring', sub:'DPIRD Western Australia', type:'grant',
+       rows:[['Area','Digital'],['Match','78%'],['Status','Ongoing'],['Provider','FoodTech WA / SBDC WA']],
+       weights:{ops:0.35,dig:0.50,mkt:0.15} },
+  g3:{ title:'ASBAS Digital Solutions Round 3', sub:'DISR / Business Grants Hub', type:'grant',
+       rows:[['Area','Digital'],['Match','68%'],['Status','Closed — 2024'],['Provider','SBDC WA']],
+       weights:{ops:0.10,dig:0.70,mkt:0.20} },
+  g4:{ title:'Australian Trusted Trader', sub:'Australian Border Force', type:'grant',
+       rows:[['Area','Market'],['Match','70%'],['Status','Ongoing'],['Provider','Aeozo Australia']],
+       weights:{ops:0.35,dig:0.20,mkt:0.45} },
+  r1:{ title:'Digital Tools for Farm Management', sub:'Practical Guide · DPIRD', type:'resource',
+       rows:[['Type','Practical Guide'],['Area','Digital'],['Match','88%']],
+       desc:'A step-by-step guide for WA primary producers adopting digital farm management tools — inventory, scheduling, and sensor systems.' },
+  r2:{ title:"WA Bulk & Containerised Grain Exports", sub:'Research Report · DPIRD', type:'resource',
+       rows:[['Type','Research Report'],['Area','Market'],['Match','74%']],
+       desc:"Analysis of Western Australia's bulk and containerised grain export volumes, markets, and logistics pathways for established agri businesses." }
+};
+
+// ── CANVAS SETUP ─────────────────────────────────────────────────
+const canvas = document.getElementById('kg');
+const ctx = canvas.getContext('2d');
+let W, H, CX, CY, SZ;
+let nodes = [], edges = [];
+let tick = 0, hovered = null, activeId = null;
+
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  W = canvas.offsetWidth; H = canvas.offsetHeight;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  ctx.scale(dpr, dpr);
+  CX = W/2; CY = H/2; SZ = Math.min(W,H);
+  buildGraph();
+}
+
+function circularMean(angles) {
+  const sinS = angles.reduce((s,a)=>s+Math.sin(a),0)/angles.length;
+  const cosS = angles.reduce((s,a)=>s+Math.cos(a),0)/angles.length;
+  return Math.atan2(sinS, cosS);
+}
+
+function buildGraph() {
+  nodes = []; edges = [];
+  const AR = SZ*0.115, GR = SZ*0.240, PR = SZ*0.370;
+
+  nodes.push({ id:'biz', x:CX, y:CY, r:28, type:'biz', label:'Greenfields\nOrganics WA', color:'#7c6ff7' });
+
+  AREAS.forEach(a => {
+    const nx = CX + AR*Math.cos(a.angle), ny = CY + AR*Math.sin(a.angle);
+    nodes.push({ id:a.id, x:nx, y:ny, r:16, type:'area', label:a.name, score:a.score, color:a.color, angle:a.angle });
+    edges.push({ from:'biz', to:a.id, type:'ba', color:a.color });
+  });
+
+  GRANTS.forEach(g => {
+    nodes.push({ id:g.id, x:CX+GR*Math.cos(g.angle), y:CY+GR*Math.sin(g.angle), r:20, type:'grant', label:g.short, match:g.match, color:'#10b981', angle:g.angle });
+    const ac = AREAS.find(a=>a.id===g.area)?.color||'#10b981';
+    edges.push({ from:g.area, to:g.id, type:'ag', color:ac });
+  });
+
+  RESOURCES.forEach(r => {
+    nodes.push({ id:r.id, x:CX+GR*Math.cos(r.angle), y:CY+GR*Math.sin(r.angle), r:14, type:'resource', label:r.short, match:r.match, color:'#f59e0b', angle:r.angle });
+    const ac = AREAS.find(a=>a.id===r.area)?.color||'#f59e0b';
+    edges.push({ from:r.area, to:r.id, type:'ar', color:ac });
+  });
+
+  PROVS.forEach(p => {
+    const allItems = [...GRANTS, ...RESOURCES];
+    const gAngles = p.grants.map(gid => allItems.find(x=>x.id===gid)?.angle||0);
+    const angle = circularMean(gAngles);
+    nodes.push({ id:p.id, x:CX+PR*Math.cos(angle), y:CY+PR*Math.sin(angle), r:13, type:'prov', label:p.abbr, fullName:p.name, color:'#64748b', angle });
+    p.grants.forEach(gid => edges.push({ from:gid, to:p.id, type:'gp', color:'#a78bfa' }));
+  });
+
+}
+
+function nd(id) { return nodes.find(n=>n.id===id); }
+
+function matchColor(v) { return v>=80?'#10b981':v>=65?'#f59e0b':'#ef4444'; }
+
+function radialLabel(node, offset) {
+  const dx=node.x-CX, dy=node.y-CY;
+  const len=Math.hypot(dx,dy)||1;
+  const ux=dx/len, uy=dy/len;
+  return {
+    lx: node.x+ux*offset, ly: node.y+uy*offset,
+    align: ux>0.4?'left':ux<-0.4?'right':'center',
+    base:  uy>0.55?'top':uy<-0.55?'bottom':'middle'
+  };
+}
+
+function drawEdge(e) {
+  const a=nd(e.from), b=nd(e.to);
+  if (!a||!b) return;
+  ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
+  if (e.type==='ba') {
+    ctx.strokeStyle=e.color+'66'; ctx.lineWidth=1.5; ctx.setLineDash([]);
+  } else if (e.type==='ag'||e.type==='ar') {
+    ctx.strokeStyle=e.color+'55'; ctx.lineWidth=1.2; ctx.setLineDash([4,4]);
+  } else if (e.type==='gp') {
+    ctx.strokeStyle='#a78bfa44'; ctx.lineWidth=1; ctx.setLineDash([3,5]);
+    ctx.lineDashOffset=-(tick*0.015);
+  }
+  ctx.stroke(); ctx.setLineDash([]);
+}
+
+function drawNode(n) {
+  const isHov=hovered===n.id, isAct=activeId===n.id;
+  ctx.save();
+  if (isHov||isAct) { ctx.shadowColor=n.color; ctx.shadowBlur=14; }
+
+  if (n.type==='biz') {
+    const pulse=1+0.04*Math.sin(tick*0.04);
+    ctx.beginPath(); ctx.arc(n.x,n.y,n.r*pulse,0,Math.PI*2);
+    ctx.fillStyle=n.color+'33'; ctx.fill();
+    ctx.strokeStyle=n.color; ctx.lineWidth=2.5; ctx.stroke();
+    ctx.beginPath(); ctx.arc(n.x,n.y,n.r*pulse-7,0,Math.PI*2);
+    ctx.fillStyle=n.color+'22'; ctx.fill();
+
+  } else if (n.type==='area') {
+    ctx.beginPath(); ctx.arc(n.x,n.y,n.r,0,Math.PI*2);
+    ctx.fillStyle=n.color+'2a'; ctx.fill();
+    ctx.strokeStyle=n.color; ctx.lineWidth=2; ctx.stroke();
+    // score arc
+    const startA=-Math.PI/2;
+    ctx.beginPath(); ctx.arc(n.x,n.y,n.r+5,startA,startA+(n.score/100)*Math.PI*2);
+    ctx.strokeStyle=n.color; ctx.lineWidth=3; ctx.lineCap='round'; ctx.stroke(); ctx.lineCap='butt';
+    ctx.fillStyle=n.color; ctx.font='bold 9px Inter,sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(n.score+'%',n.x,n.y);
+
+  } else if (n.type==='grant') {
+    const mc=matchColor(n.match);
+    ctx.beginPath(); ctx.arc(n.x,n.y,n.r,0,Math.PI*2);
+    ctx.fillStyle='#10b98120'; ctx.fill();
+    ctx.strokeStyle=mc; ctx.lineWidth=isHov?2.5:1.8; ctx.stroke();
+    ctx.beginPath(); ctx.arc(n.x,n.y,5,0,Math.PI*2);
+    ctx.fillStyle=mc; ctx.fill();
+
+  } else if (n.type==='resource') {
+    ctx.beginPath(); ctx.arc(n.x,n.y,n.r,0,Math.PI*2);
+    ctx.fillStyle='#f59e0b15'; ctx.fill();
+    ctx.setLineDash([3,3]); ctx.strokeStyle='#f59e0b'; ctx.lineWidth=1.8; ctx.stroke(); ctx.setLineDash([]);
+    ctx.save(); ctx.translate(n.x,n.y); ctx.rotate(Math.PI/4);
+    ctx.beginPath(); ctx.rect(-4,-4,8,8); ctx.fillStyle='#f59e0b'; ctx.fill();
+    ctx.restore();
+
+  } else if (n.type==='prov') {
+    ctx.beginPath(); ctx.arc(n.x,n.y,n.r,0,Math.PI*2);
+    ctx.fillStyle='#64748b33'; ctx.fill();
+    ctx.strokeStyle='#64748b'; ctx.lineWidth=1.5; ctx.stroke();
+
+  }
+  ctx.restore();
+}
+
+function drawLabels(n) {
+  ctx.save();
+  const isHov=hovered===n.id;
+
+  if (n.type==='biz') {
+    ctx.fillStyle='#e8eaf2'; ctx.font='bold 9px Inter,sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    n.label.split('\n').forEach((l,i,a)=>ctx.fillText(l,n.x,n.y+(i-(a.length-1)/2)*11));
+
+  } else if (n.type==='area') {
+    const {lx,ly,align,base}=radialLabel(n,n.r+14);
+    ctx.fillStyle=n.color; ctx.font='bold 10px Inter,sans-serif';
+    ctx.textAlign=align; ctx.textBaseline=base;
+    ctx.fillText(n.label,lx,ly);
+
+  } else if (n.type==='grant') {
+    const {lx,ly,align,base}=radialLabel(n,n.r+9);
+    ctx.fillStyle=isHov?'#e8eaf2':'#8892b0';
+    ctx.font=(isHov?'bold ':'')+'9px Inter,sans-serif';
+    ctx.textAlign=align; ctx.textBaseline=base;
+    const words=n.label.split(' ');
+    if (words.length<=2) {
+      ctx.fillText(n.label,lx,ly);
+    } else {
+      const mid=Math.ceil(words.length/2);
+      ctx.fillText(words.slice(0,mid).join(' '),lx,ly-5);
+      ctx.fillText(words.slice(mid).join(' '),lx,ly+5);
+    }
+    ctx.fillStyle=matchColor(n.match); ctx.font='bold 8px Inter,sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(n.match+'%',n.x,n.y);
+
+  } else if (n.type==='resource') {
+    const {lx,ly,align,base}=radialLabel(n,n.r+9);
+    ctx.fillStyle=isHov?'#f59e0b':'#8892b0';
+    ctx.font='9px Inter,sans-serif'; ctx.textAlign=align; ctx.textBaseline=base;
+    const words=n.label.split(' ');
+    if (words.length<=2) { ctx.fillText(n.label,lx,ly); }
+    else {
+      const mid=Math.ceil(words.length/2);
+      ctx.fillText(words.slice(0,mid).join(' '),lx,ly-5);
+      ctx.fillText(words.slice(mid).join(' '),lx,ly+5);
+    }
+
+  } else if (n.type==='prov') {
+    const {lx,ly,align,base}=radialLabel(n,n.r+7);
+    ctx.fillStyle='#8892b0'; ctx.font='8px Inter,sans-serif';
+    ctx.textAlign=align; ctx.textBaseline=base;
+    ctx.fillText(n.label,lx,ly);
+
+  }
+  ctx.restore();
+}
+
+function draw() {
+  ctx.clearRect(0,0,W,H);
+  const AR=SZ*0.115, GR=SZ*0.240, PR=SZ*0.370;
+  const rings=[[AR,'#7c6ff708'],[GR,'#10b98108'],[PR,'#64748b08']];
+  rings.forEach(([r,c])=>{
+    ctx.beginPath(); ctx.arc(CX,CY,r,0,Math.PI*2);
+    ctx.strokeStyle=c; ctx.lineWidth=1; ctx.setLineDash([2,8]); ctx.stroke(); ctx.setLineDash([]);
+  });
+  edges.forEach(drawEdge);
+  nodes.forEach(drawNode);
+  nodes.forEach(drawLabels);
+  tick++;
+  requestAnimationFrame(draw);
+}
+
+// ── INTERACTION ───────────────────────────────────────────────────
+canvas.addEventListener('mousemove', e => {
+  const rect=canvas.getBoundingClientRect();
+  const mx=e.clientX-rect.left, my=e.clientY-rect.top;
+  let found=null;
+  nodes.forEach(n=>{ if(Math.hypot(mx-n.x,my-n.y)<n.r+6) found=n.id; });
+  hovered=found; canvas.style.cursor=found?'pointer':'default';
+});
+
+canvas.addEventListener('click', () => {
+  if (hovered) {
+    const node=nodes.find(n=>n.id===hovered);
+    if (node&&['grant','resource'].includes(node.type)) showDetail(node.id);
+  }
+});
+
+// ── PANEL ─────────────────────────────────────────────────────────
+function showDetail(id) {
+  activeId=id;
+  const d=DETAILS[id]; if(!d) return;
+  document.querySelectorAll('.result-card').forEach(el=>el.classList.toggle('active',el.dataset.id===id));
+  let html=`<div class="dv-title">${d.title}</div><div class="dv-subtitle">${d.sub}</div><div class="dv-divider"></div>`;
+  d.rows.forEach(([k,v])=>{ html+=`<div class="dv-row"><span class="dv-key">${k}</span><span class="dv-val">${v}</span></div>`; });
+  if (d.desc) html+=`<div class="dv-divider"></div><div style="font-size:11px;color:var(--txt2);line-height:1.6">${d.desc}</div>`;
+  if (d.weights) {
+    html+=`<div class="dv-divider"></div><div class="section-label">Area Weights</div>
+    <div class="area-weight-grid">
+      <div class="aw-cell"><div class="aw-lbl">Ops</div><div class="aw-val" style="color:#f59e0b">${Math.round(d.weights.ops*100)}%</div></div>
+      <div class="aw-cell"><div class="aw-lbl">Dig</div><div class="aw-val" style="color:#38bdf8">${Math.round(d.weights.dig*100)}%</div></div>
+      <div class="aw-cell"><div class="aw-lbl">Mkt</div><div class="aw-val" style="color:#a78bfa">${Math.round(d.weights.mkt*100)}%</div></div>
+    </div>
+    <div class="dv-bar-wrap"><div class="dv-bar-lbl"><span>Operations</span><span style="color:#f59e0b">${Math.round(d.weights.ops*100)}%</span></div>
+      <div class="dv-bar-track"><div class="dv-bar-fill" style="width:${d.weights.ops*100}%;background:#f59e0b"></div></div></div>
+    <div class="dv-bar-wrap"><div class="dv-bar-lbl"><span>Digital</span><span style="color:#38bdf8">${Math.round(d.weights.dig*100)}%</span></div>
+      <div class="dv-bar-track"><div class="dv-bar-fill" style="width:${d.weights.dig*100}%;background:#38bdf8"></div></div></div>
+    <div class="dv-bar-wrap"><div class="dv-bar-lbl"><span>Market</span><span style="color:#a78bfa">${Math.round(d.weights.mkt*100)}%</span></div>
+      <div class="dv-bar-track"><div class="dv-bar-fill" style="width:${d.weights.mkt*100}%;background:#a78bfa"></div></div></div>`;
+  }
+  document.getElementById('detailContent').innerHTML=html;
+  document.getElementById('listView').style.display='none';
+  document.getElementById('detailView').classList.add('active');
+}
+
+function showList() {
+  activeId=null;
+  document.querySelectorAll('.result-card').forEach(el=>el.classList.remove('active'));
+  document.getElementById('listView').style.display='';
+  document.getElementById('detailView').classList.remove('active');
+}
+
+// ── GAUGE ANIMATION ───────────────────────────────────────────────
+function animateGauge() {
+  const circ=188.5, fill=document.getElementById('gfill'), pct=document.getElementById('gpct');
+  let cur=0;
+  const step=()=>{ cur=Math.min(cur+1,53); fill.style.strokeDashoffset=circ-(circ*cur/100); pct.textContent=cur+'%'; if(cur<53) requestAnimationFrame(step); };
+  setTimeout(()=>requestAnimationFrame(step),400);
+}
+
+window.addEventListener('resize', resize);
+resize(); draw(); animateGauge();
+</script>
